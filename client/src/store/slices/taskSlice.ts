@@ -2,6 +2,11 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 export interface Task {
+  activity?: Array<{
+    action: string;
+    actor: string;
+    timestamp: string;
+  }>;
   id: string;
   title: string;
   description?: string;

@@ -1,6 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ITask extends Document {
+  activity: Array<{
+    action: string;
+    actor: string;
+    timestamp: Date;
+  }>;
   title: string;
   description: string;
   status: 'todo' | 'inprogress' | 'done';
@@ -15,6 +20,16 @@ export interface ITask extends Document {
 }
 
 const TaskSchema: Schema = new Schema({
+  activity: {
+    type: [
+      {
+        action: { type: String, required: true },
+        actor: { type: String, required: true },
+        timestamp: { type: Date, required: true, default: Date.now },
+      },
+    ],
+    default: [],
+  },
   title: { type: String, required: true },
   description: { type: String, default: '' },
   status: { type: String, enum: ['todo', 'inprogress', 'done'], default: 'todo' },

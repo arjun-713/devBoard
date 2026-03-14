@@ -1095,6 +1095,38 @@ export const DashboardPage: React.FC = () => {
                 }
               />
             </div>
+            {editingTask ? (
+              <div className="rounded-lg border border-border bg-bg-base p-3">
+                <h4 className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
+                  Activity
+                </h4>
+                <div className="mt-2 space-y-2">
+                  {(editingTask.activity ?? []).length > 0 ? (
+                    [...(editingTask.activity ?? [])]
+                      .slice(-5)
+                      .reverse()
+                      .map((entry) => (
+                        <div key={`${entry.timestamp}-${entry.action}`} className="flex items-start gap-2">
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-text-muted" />
+                          <div>
+                            <p className="text-[12px] text-text-secondary">{entry.action}</p>
+                            <p className="text-[11px] font-mono text-[#555550]">
+                              {new Date(entry.timestamp).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-[11px] font-mono text-[#555550]">No activity yet.</p>
+                  )}
+                </div>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-3 pt-2">
               <div className="flex items-center gap-2 text-[11px] font-mono text-text-muted">
                 <Calendar size={12} />

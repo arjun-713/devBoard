@@ -13,6 +13,25 @@ const columnToStatus = (columnId: string) => {
   }
 };
 
+const columnToLabel = (columnId: string) => {
+  switch (columnId) {
+    case 'inprogress':
+      return 'In Progress';
+    case 'done':
+      return 'Done';
+    default:
+      return 'To Do';
+  }
+};
+
+const pushActivity = (task: { activity: Array<{ action: string; actor: string; timestamp: Date }> }, action: string, actor: string) => {
+  task.activity.push({
+    action,
+    actor,
+    timestamp: new Date(),
+  });
+};
+
 export const getTasks = async (req: AuthRequest, res: Response) => {
   const { boardId } = req.query;
   try {
@@ -53,6 +72,7 @@ export const createTask = async (req: AuthRequest, res: Response) => {
       order,
       userId: req.user?.id
     });
+    pushActivity(task, 'Task created', req.user?.id ?? 'unknown');
     await task.save();
     res.status(201).json(task);
   } catch (error) {
@@ -68,12 +88,32 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
       updates.status = columnToStatus(updates.columnId);
     }
 
-    const task = await Task.findOneAndUpdate(
-      { _id: id, userId: req.user?.id },
-      updates,
-      { new: true }
-    );
+    const task = await Task.findOne({ _id: id, userId: req.user?.id });
     if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const previousPriority = task.priority;
+    const previousStatus = task.status;
+    const previousColumnId = task.columnId;
+
+    Object.assign(task, updates);
+
+    if (task.priority !== previousPriority) {
+      pushActivity(task, `Priority changed to ${task.priority}`, req.user?.id ?? 'unknown');
+    }
+
+    if (task.status !== previousStatus) {
+      pushActivity(task, `Status changed to ${task.status}`, req.user?.id ?? 'unknown');
+    }
+
+    if (task.columnId !== previousColumnId) {
+      pushActivity(
+        task,
+        `Moved from ${columnToLabel(previousColumnId)} to ${columnToLabel(task.columnId)}`,
+        req.user?.id ?? 'unknown'
+      );
+    }
+
+    await task.save();
     res.json(task);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -111,6 +151,8 @@ export const moveTask = async (req: AuthRequest, res: Response) => {
 
     const sourceColumnId = fromColumnId ?? task.columnId;
     const targetColumnId = toColumnId;
+    const sourceStatus = task.status;
+    const targetStatus = columnToStatus(targetColumnId);
 
     const sourceTasks = await Task.find({
       userId: req.user?.id,
@@ -172,6 +214,17 @@ export const moveTask = async (req: AuthRequest, res: Response) => {
     }
 
     const updatedTask = await Task.findOne({ _id: id, userId: req.user?.id });
+    if (updatedTask && sourceColumnId !== targetColumnId) {
+      pushActivity(
+        updatedTask,
+        `Moved from ${columnToLabel(sourceColumnId)} to ${columnToLabel(targetColumnId)}`,
+        req.user?.id ?? 'unknown'
+      );
+      if (sourceStatus !== targetStatus) {
+        pushActivity(updatedTask, `Status changed to ${targetStatus}`, req.user?.id ?? 'unknown');
+      }
+      await updatedTask.save();
+    }
     res.json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
