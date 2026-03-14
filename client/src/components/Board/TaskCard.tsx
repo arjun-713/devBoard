@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge } from '../UI/Badge';
-import { MoreHorizontal, Calendar, User } from 'lucide-react';
+import { MoreHorizontal, Calendar, GripVertical, User } from 'lucide-react';
 import type { Task } from '@/store/slices/taskSlice';
 
 interface TaskCardProps {
@@ -46,18 +46,33 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
       ref={setNodeRef}
       style={style}
       onClick={onClick}
-      {...attributes}
-      {...listeners}
       className="group bg-bg-surface border border-border rounded-lg p-3
                  hover:border-border-strong hover:bg-bg-elevated transition-all duration-150 cursor-pointer
                  touch-none"
       data-dragging={isDragging}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-[13px] font-medium text-text-primary leading-snug">
-          {task.title}
-        </span>
-        <button className="opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-text-primary">
+        <div className="flex items-start gap-2 min-w-0">
+          <button
+            type="button"
+            className="mt-0.5 text-text-muted/70 hover:text-text-primary cursor-grab active:cursor-grabbing"
+            onClick={(event) => event.stopPropagation()}
+            {...attributes}
+            {...listeners}
+            aria-label="Drag task"
+          >
+            <GripVertical size={13} />
+          </button>
+          <span className="text-[13px] font-medium text-text-primary leading-snug truncate">
+            {task.title}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-text-primary"
+          onClick={(event) => event.stopPropagation()}
+          aria-label="Task actions"
+        >
           <MoreHorizontal size={14} />
         </button>
       </div>
@@ -81,7 +96,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
         </div>
       ) : null}
 
-      <div className={`flex items-center justify-between mt-3 ${isDragging ? 'opacity-50 rotate-1 scale-[1.02]' : ''}`}>
+      <div
+        className={`flex items-center justify-between mt-3 ${
+          isDragging ? 'opacity-50 rotate-1 scale-[1.02]' : ''
+        }`}
+      >
         <Badge variant={task.priority}>
           {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
         </Badge>

@@ -56,7 +56,9 @@ export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onAddTask, onT
       {/* Task List */}
       <div
         ref={setNodeRef}
-        className={`flex-1 min-h-[150px] rounded-xl transition-all ${isOver ? 'bg-bg-elevated/40' : ''}`}
+        className={`flex-1 min-h-[150px] rounded-xl border border-transparent transition-all duration-150 ${
+          isOver ? 'bg-bg-elevated/40 border-border-strong' : ''
+        }`}
       >
         <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
           <div className="flex h-full flex-col gap-2 overflow-y-auto pr-1">

@@ -2,6 +2,7 @@ import React from 'react';
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   closestCorners,
   useSensor,
@@ -9,6 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Column } from './Column';
 import { TaskCard } from './TaskCard';
 import type { Task } from '@/store/slices/taskSlice';
@@ -28,6 +30,9 @@ export const Board: React.FC<BoardProps> = ({ columns, tasks, onAddTask, onTaskC
       activationConstraint: {
         distance: 6,
       },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
@@ -100,7 +105,7 @@ export const Board: React.FC<BoardProps> = ({ columns, tasks, onAddTask, onTaskC
           );
         })}
       </div>
-      <DragOverlay>
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'ease-out' }}>
         {activeTask ? <TaskCard task={activeTask} isDraggingOverlay /> : null}
       </DragOverlay>
     </DndContext>
