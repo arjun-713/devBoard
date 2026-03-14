@@ -15,11 +15,11 @@ interface BadgeProps {
 export const Badge: React.FC<BadgeProps> = ({ children, variant, className }) => {
   const variants = {
     todo: 'bg-text-muted/10 text-text-muted',
-    inprogress: 'bg-brand-orange/10 text-brand-orange',
-    done: 'bg-brand-cyan/10 text-brand-cyan',
-    high: 'bg-brand-pumpkin/10 text-brand-pumpkin',
-    medium: 'bg-brand-orange/10 text-brand-orange',
-    low: 'bg-brand-cyan/10 text-brand-cyan',
+    inprogress: 'bg-[#FF9E00]/10 text-[#FF9E00]',
+    done: 'bg-[#00B4D8]/10 text-[#00B4D8]',
+    high: 'bg-[#FF6D00]/10 text-[#FF6D00]',
+    medium: 'bg-[#FF9E00]/10 text-[#FF9E00]',
+    low: 'bg-[#00B4D8]/10 text-[#00B4D8]',
   };
 
   return (

@@ -27,6 +27,8 @@ export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onAddTask, onT
     'In Progress': '#FF9E00',
     'Done': '#00B4D8',
   };
+  const isDoneColumn = id === 'done';
+  const isInProgressColumn = id === 'inprogress';
 
   return (
     <div className="w-[280px] min-w-[280px] flex flex-col h-full">
@@ -57,13 +59,20 @@ export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onAddTask, onT
       <div
         ref={setNodeRef}
         className={`flex-1 min-h-[150px] rounded-xl border border-transparent transition-all duration-150 ${
-          isOver ? 'bg-bg-elevated/40 border-border-strong' : ''
+          isOver
+            ? `bg-bg-elevated/40 ${isInProgressColumn ? 'border-[#FF9E00]/20' : 'border-border-strong'}`
+            : ''
         }`}
       >
         <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
           <div className="flex h-full flex-col gap-2 overflow-y-auto pr-1">
             {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onClick={() => onTaskClick?.(task)} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                isDoneColumn={isDoneColumn}
+                onClick={() => onTaskClick?.(task)}
+              />
             ))}
             
             {tasks.length === 0 && (

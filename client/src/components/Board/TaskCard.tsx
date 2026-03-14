@@ -9,9 +9,15 @@ interface TaskCardProps {
   task: Task;
   onClick?: () => void;
   isDraggingOverlay?: boolean;
+  isDoneColumn?: boolean;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOverlay = false }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  onClick,
+  isDraggingOverlay = false,
+  isDoneColumn = false,
+}) => {
   const formattedDueDate = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : 'No date';
@@ -50,7 +56,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
                  hover:border-border-strong hover:bg-bg-elevated transition-all duration-150 cursor-pointer
                  touch-none"
       data-dragging={isDragging}
+      aria-disabled={isDoneColumn}
     >
+      <div className={isDoneColumn ? 'opacity-80' : ''}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0">
           <button
@@ -98,15 +106,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
 
       <div
         className={`flex items-center justify-between mt-3 ${
-          isDragging ? 'opacity-50 rotate-1 scale-[1.02]' : ''
+          isDragging || isDraggingOverlay ? 'opacity-50 rotate-1 scale-[1.02]' : ''
         }`}
       >
         <Badge variant={task.priority}>
           {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
         </Badge>
         
-        <div className="flex items-center gap-2 text-[11px] font-mono text-text-muted">
-          <div className="w-4 h-4 rounded-full bg-brand-blue-deep flex items-center justify-center overflow-hidden">
+        <div className={`flex items-center gap-2 text-[11px] font-mono text-text-muted ${isDoneColumn ? 'opacity-80' : ''}`}>
+          <div className={`w-4 h-4 rounded-full bg-brand-blue-deep flex items-center justify-center overflow-hidden ${isDoneColumn ? 'grayscale' : ''}`}>
             {assigneeLabel === 'Unassigned' ? (
               <User size={10} className="text-white" />
             ) : (
@@ -118,6 +126,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
             <span>{formattedDueDate}</span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
