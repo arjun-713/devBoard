@@ -198,6 +198,22 @@ export const DashboardPage: React.FC = () => {
     [sortedTasks]
   );
 
+  const boardStats = useMemo(() => {
+    const total = sortedTasks.length;
+    const inProgress = sortedTasks.filter((task) => task.status === 'inprogress').length;
+    const overdue = sortedTasks.filter((task) => {
+      if (!task.dueDate) return false;
+      const due = new Date(task.dueDate);
+      const now = new Date();
+      const dueMidnight = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+      const nowMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      return dueMidnight < nowMidnight;
+    }).length;
+    const completionRate = total === 0 ? 0 : Math.round((sortedTasks.filter((task) => task.status === 'done').length / total) * 100);
+
+    return { total, inProgress, overdue, completionRate };
+  }, [sortedTasks]);
+
   const columnOptions = useMemo(
     () =>
       (activeBoard?.columns ?? ['To Do', 'In Progress', 'Done']).map((column) => {
@@ -699,14 +715,34 @@ export const DashboardPage: React.FC = () => {
     }
 
     return (
-      <Board
-        columns={activeBoard.columns}
-        tasks={sortedTasks}
-        isLoading={isTasksLoading}
-        onAddTask={openCreateTaskModal}
-        onTaskClick={openEditTaskModal}
-        onMoveTask={moveTask}
-      />
+      <div className="flex h-full flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-bg-surface p-3 sm:grid-cols-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">Total Tasks</p>
+            <p className="text-[20px] font-semibold text-[#F0EDE6]">{boardStats.total}</p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">In Progress</p>
+            <p className="text-[20px] font-semibold text-[#FF9E00]">{boardStats.inProgress}</p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">Overdue</p>
+            <p className="text-[20px] font-semibold text-[#FF6D00]">{boardStats.overdue}</p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">Completion Rate</p>
+            <p className="text-[20px] font-semibold text-[#00B4D8]">{boardStats.completionRate}%</p>
+          </div>
+        </div>
+        <Board
+          columns={activeBoard.columns}
+          tasks={sortedTasks}
+          isLoading={isTasksLoading}
+          onAddTask={openCreateTaskModal}
+          onTaskClick={openEditTaskModal}
+          onMoveTask={moveTask}
+        />
+      </div>
     );
   };
 
