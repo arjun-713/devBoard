@@ -1,0 +1,63 @@
+import axios from 'axios';
+import { store } from '@/store';
+import { logout, setCredentials } from '@/store/slices/authSlice';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const client = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor: attach token
+client.interceptors.request.use(
+  (config) => {
+    const token = store.getState().auth.accessToken;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor: handle token refresh
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If error is 401 and we haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+        
+        // Update store and localStorage
+        const user = store.getState().auth.user;
+        if (user) {
+          store.dispatch(setCredentials({ user, accessToken: data.accessToken }));
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+
+        // Retry original request
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        return client(originalRequest);
+      } catch (refreshError) {
+        store.dispatch(logout());
+        localStorage.removeItem('refreshToken');
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default client;
