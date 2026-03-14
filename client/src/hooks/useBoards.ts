@@ -51,6 +51,25 @@ export const useBoards = () => {
     return newBoard;
   };
 
+  const updateBoard = async (id: string, name: string) => {
+    const existingBoard = boards.find((board) => board.id === id);
+    if (!existingBoard) {
+      throw new Error('Board not found');
+    }
+
+    const { data } = await client.put<ApiBoard>(`/boards/${id}`, {
+      name,
+      columns: existingBoard.columns,
+    });
+
+    const updatedBoard = mapBoard(data);
+    const updatedBoards = boards.map((board) =>
+      board.id === updatedBoard.id ? updatedBoard : board
+    );
+    dispatch(setBoards(updatedBoards));
+    return updatedBoard;
+  };
+
   const deleteBoard = async (id: string) => {
     await client.delete(`/boards/${id}`);
     const remainingBoards = boards.filter((board) => board.id !== id);
@@ -58,6 +77,8 @@ export const useBoards = () => {
     if (activeBoardId === id) {
       if (remainingBoards.length > 0) {
         dispatch(setActiveBoard(remainingBoards[0].id));
+      } else {
+        dispatch(setActiveBoard(null));
       }
     }
   };
@@ -89,6 +110,7 @@ export const useBoards = () => {
     fetchBoards,
     createBoard,
     deleteBoard,
-    setActiveBoard: (id: string) => dispatch(setActiveBoard(id)),
+    updateBoard,
+    setActiveBoard: (id: string | null) => dispatch(setActiveBoard(id)),
   };
 };

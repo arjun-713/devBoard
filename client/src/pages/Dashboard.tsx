@@ -10,6 +10,7 @@ import {
   Layers,
   Calendar,
   FolderKanban,
+  Pencil,
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,6 +44,7 @@ const defaultTaskForm = (columnId = 'todo'): TaskFormState => ({
 
 const modalIds = {
   createBoard: 'create-board',
+  editBoard: 'edit-board',
   createTask: 'create-task',
   editTask: 'edit-task',
 } as const;
@@ -79,7 +81,7 @@ const formatPriority = (priority: Priority) =>
 
 export const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { boards, activeBoardId, setActiveBoard, createBoard } = useBoards();
+  const { boards, activeBoardId, setActiveBoard, createBoard, updateBoard, deleteBoard } = useBoards();
   const { tasks, createTask, updateTask, deleteTask, moveTask } = useTasks(activeBoardId);
   const { activeModal, openModal, closeModal, toasts, addToast, removeToast } = useUIStore();
 
@@ -87,8 +89,11 @@ export const DashboardPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [searchQuery, setSearchQuery] = useState('');
   const [boardName, setBoardName] = useState('');
+  const [boardEditName, setBoardEditName] = useState('');
   const [taskForm, setTaskForm] = useState<TaskFormState>(defaultTaskForm());
   const [isSubmittingBoard, setIsSubmittingBoard] = useState(false);
+  const [isUpdatingBoard, setIsUpdatingBoard] = useState(false);
+  const [isDeletingBoard, setIsDeletingBoard] = useState(false);
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -161,6 +166,12 @@ export const DashboardPage: React.FC = () => {
     setEditingTask(null);
     setTaskForm(defaultTaskForm(columnId));
     openModal(modalIds.createTask);
+  };
+
+  const openEditBoardModal = () => {
+    if (!activeBoard) return;
+    setBoardEditName(activeBoard.name);
+    openModal(modalIds.editBoard);
   };
 
   const openEditTaskModal = (task: Task) => {
@@ -237,6 +248,41 @@ export const DashboardPage: React.FC = () => {
       addToast('Failed to save task', 'error');
     } finally {
       setIsSubmittingTask(false);
+    }
+  };
+
+  const handleUpdateBoard = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!activeBoard) return;
+    const trimmedName = boardEditName.trim();
+    if (!trimmedName) return;
+
+    setIsUpdatingBoard(true);
+    try {
+      await updateBoard(activeBoard.id, trimmedName);
+      addToast('Board updated', 'success');
+      closeModal();
+    } catch (error) {
+      console.error('Failed to update board', error);
+      addToast('Failed to update board', 'error');
+    } finally {
+      setIsUpdatingBoard(false);
+    }
+  };
+
+  const handleDeleteBoard = async () => {
+    if (!activeBoard) return;
+
+    setIsDeletingBoard(true);
+    try {
+      await deleteBoard(activeBoard.id);
+      addToast('Board deleted', 'success');
+      closeModal();
+    } catch (error) {
+      console.error('Failed to delete board', error);
+      addToast('Failed to delete board', 'error');
+    } finally {
+      setIsDeletingBoard(false);
     }
   };
 
@@ -641,6 +687,15 @@ export const DashboardPage: React.FC = () => {
                 List
               </button>
             </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={openEditBoardModal}
+              disabled={!activeBoard || workspaceView !== 'boards'}
+            >
+              <Pencil size={13} className="mr-1.5" />
+              Board
+            </Button>
             <Button size="sm" onClick={() => openCreateTaskModal()} disabled={!activeBoard}>
               <Plus size={14} className="mr-1.5" />
               Add Task
@@ -699,6 +754,49 @@ export const DashboardPage: React.FC = () => {
               <Button type="submit" isLoading={isSubmittingBoard}>
                 Create Board
               </Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {activeModal === modalIds.editBoard ? (
+        <Modal
+          title="Board Settings"
+          description="Rename this board or remove it from your workspace."
+          onClose={closeModal}
+        >
+          <form className="space-y-4" onSubmit={handleUpdateBoard}>
+            <div>
+              <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
+                Board Name
+              </label>
+              <input
+                type="text"
+                value={boardEditName}
+                onChange={(event) => setBoardEditName(event.target.value)}
+                className="w-full rounded-lg border border-border bg-bg-base h-10 px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50"
+                placeholder="Platform Roadmap"
+                required
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleDeleteBoard}
+                isLoading={isDeletingBoard}
+              >
+                <Trash2 size={13} className="mr-1.5" />
+                Delete Board
+              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={closeModal}>
+                  Cancel
+                </Button>
+                <Button type="submit" isLoading={isUpdatingBoard}>
+                  Save Changes
+                </Button>
+              </div>
             </div>
           </form>
         </Modal>

@@ -28,7 +28,7 @@ const boardSlice = createSlice({
     setBoards: (state, action: PayloadAction<Board[]>) => {
       state.boards = action.payload;
     },
-    setActiveBoard: (state, action: PayloadAction<string>) => {
+    setActiveBoard: (state, action: PayloadAction<string | null>) => {
       state.activeBoardId = action.payload;
     },
   },
