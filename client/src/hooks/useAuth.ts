@@ -1,8 +1,13 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '@/store';
+import type { AxiosError } from 'axios';
+import type { RootState, AppDispatch } from '@/store';
 import { setCredentials, logout as logoutAction, setLoading, setError } from '@/store/slices/authSlice';
 import client from '@/api/client';
 import { useNavigate } from 'react-router-dom';
+
+interface AuthErrorResponse {
+  message?: string;
+}
 
 export const useAuth = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -17,8 +22,9 @@ export const useAuth = () => {
       dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
       localStorage.setItem('refreshToken', data.refreshToken);
       navigate('/');
-    } catch (err: any) {
-      dispatch(setError(err.response?.data?.message || 'Login failed'));
+    } catch (err) {
+      const error = err as AxiosError<AuthErrorResponse>;
+      dispatch(setError(error.response?.data?.message ?? 'Login failed'));
     } finally {
       dispatch(setLoading(false));
     }
@@ -32,8 +38,9 @@ export const useAuth = () => {
       dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
       localStorage.setItem('refreshToken', data.refreshToken);
       navigate('/');
-    } catch (err: any) {
-      dispatch(setError(err.response?.data?.message || 'Registration failed'));
+    } catch (err) {
+      const error = err as AxiosError<AuthErrorResponse>;
+      dispatch(setError(error.response?.data?.message ?? 'Registration failed'));
     } finally {
       dispatch(setLoading(false));
     }

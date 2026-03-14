@@ -1,19 +1,51 @@
 import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Badge } from '../UI/Badge';
 import { MoreHorizontal, Calendar, User } from 'lucide-react';
-import { Task } from '@/store/slices/taskSlice';
+import type { Task } from '@/store/slices/taskSlice';
 
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
+  isDraggingOverlay?: boolean;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOverlay = false }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: {
+      type: 'task',
+      task,
+    },
+    disabled: isDraggingOverlay,
+  });
+
+  const style = isDraggingOverlay
+    ? undefined
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      };
+
   return (
     <div 
+      ref={setNodeRef}
+      style={style}
       onClick={onClick}
+      {...attributes}
+      {...listeners}
       className="group bg-bg-surface border border-border rounded-lg p-3
-                 hover:border-border-strong hover:bg-bg-elevated transition-all duration-150 cursor-pointer"
+                 hover:border-border-strong hover:bg-bg-elevated transition-all duration-150 cursor-pointer
+                 touch-none"
+      data-dragging={isDragging}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-[13px] font-medium text-text-primary leading-snug">
@@ -30,7 +62,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
         </p>
       )}
 
-      <div className="flex items-center justify-between mt-3">
+      <div className={`flex items-center justify-between mt-3 ${isDragging ? 'opacity-50 rotate-1 scale-[1.02]' : ''}`}>
         <Badge variant={task.priority}>
           {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
         </Badge>

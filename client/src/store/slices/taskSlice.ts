@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 export interface Task {
   id: string;
@@ -42,12 +43,8 @@ const taskSlice = createSlice({
     deleteTask: (state, action: PayloadAction<string>) => {
       state.tasks = state.tasks.filter((t) => t.id !== action.payload);
     },
-    moveTask: (state, action: PayloadAction<{ taskId: string; columnId: string; order: number }>) => {
-      const task = state.tasks.find((t) => t.id === action.payload.taskId);
-      if (task) {
-        task.columnId = action.payload.columnId;
-        task.order = action.payload.order;
-      }
+    moveTask: (state, action: PayloadAction<Task[]>) => {
+      state.tasks = action.payload;
     },
   },
 });

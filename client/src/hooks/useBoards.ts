@@ -1,43 +1,94 @@
-```typescript
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  LogOut,
-  Layout,
-  Plus,
-  Search,
-  Bell,
-  Settings,
-  ChevronRight,
-  Layers
-} from 'lucide-react';
-import { RootState, AppDispatch } from '@/store';
+import type { RootState, AppDispatch } from '@/store';
 import { setBoards, setActiveBoard } from '@/store/slices/boardSlice';
+import type { Board } from '@/store/slices/boardSlice';
 import client from '@/api/client';
+
+interface ApiBoard {
+  _id: string;
+  name: string;
+  columns?: string[];
+}
+
+const selectBoardState = (state: RootState) => state.boards;
+
+const defaultColumns = ['To Do', 'In Progress', 'Done'];
+
+const mapBoard = (board: ApiBoard): Board => ({
+  id: board._id,
+  name: board.name,
+  columns: board.columns ?? defaultColumns,
+});
 
 export const useBoards = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { boards, activeBoardId, loading, error } = useSelector((state: RootState) => state.auth.isAuthenticated ? state.boards : { boards: [], activeBoardId: null, loading: false, error: null });
+  const { boards, activeBoardId, loading, error } = useSelector(selectBoardState);
 
   const fetchBoards = async () => {
     try {
-      const { data } = await client.get('/boards');
-      const transformedBoards = data.map((b: any) => ({
-        ...b,
-        id: b._id
-      }));
+      const { data } = await client.get<ApiBoard[]>('/boards');
+      const transformedBoards = data.map(mapBoard);
+
       dispatch(setBoards(transformedBoards));
+
       if (transformedBoards.length > 0 && !activeBoardId) {
         dispatch(setActiveBoard(transformedBoards[0].id));
       }
-    } catch (err) {
-      console.error('Failed to fetch boards', err);
+    } catch (fetchError) {
+      console.error('Failed to fetch boards', fetchError);
+    }
+  };
+
+  const createBoard = async (name: string) => {
+    const { data } = await client.post<ApiBoard>('/boards', {
+      name,
+      columns: defaultColumns,
+    });
+    const newBoard = mapBoard(data);
+    dispatch(setBoards([...boards, newBoard]));
+    dispatch(setActiveBoard(newBoard.id));
+    return newBoard;
+  };
+
+  const deleteBoard = async (id: string) => {
+    await client.delete(`/boards/${id}`);
+    const remainingBoards = boards.filter((board) => board.id !== id);
+    dispatch(setBoards(remainingBoards));
+    if (activeBoardId === id) {
+      if (remainingBoards.length > 0) {
+        dispatch(setActiveBoard(remainingBoards[0].id));
+      }
     }
   };
 
   useEffect(() => {
-    fetchBoards();
-  }, []);
+    const loadBoards = async () => {
+      try {
+        const { data } = await client.get<ApiBoard[]>('/boards');
+        const transformedBoards = data.map(mapBoard);
 
-  return { boards, activeBoardId, loading, error, fetchBoards, setActiveBoard: (id: string) => dispatch(setActiveBoard(id)) };
+        dispatch(setBoards(transformedBoards));
+
+        if (transformedBoards.length > 0 && !activeBoardId) {
+          dispatch(setActiveBoard(transformedBoards[0].id));
+        }
+      } catch (fetchError) {
+        console.error('Failed to fetch boards', fetchError);
+      }
+    };
+
+    void loadBoards();
+  }, [activeBoardId, dispatch]);
+
+  return {
+    boards,
+    activeBoardId,
+    loading,
+    error,
+    fetchBoards,
+    createBoard,
+    deleteBoard,
+    setActiveBoard: (id: string) => dispatch(setActiveBoard(id)),
+  };
 };

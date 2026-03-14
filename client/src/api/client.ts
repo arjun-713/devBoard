@@ -29,8 +29,8 @@ client.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Refresh on unauthorized or expired-token responses once per request.
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
@@ -39,8 +39,8 @@ client.interceptors.response.use(
 
         const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
         
-        // Update store and localStorage
-        const user = store.getState().auth.user;
+        const storedUser = localStorage.getItem('authUser');
+        const user = store.getState().auth.user ?? (storedUser ? JSON.parse(storedUser) : null);
         if (user) {
           store.dispatch(setCredentials({ user, accessToken: data.accessToken }));
           localStorage.setItem('refreshToken', data.refreshToken);
