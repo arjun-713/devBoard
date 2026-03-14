@@ -7,7 +7,7 @@ import {
   SearchX,
   Bell,
   Inbox,
-  Settings,
+  LocateFixed,
   ChevronRight,
   Layers,
   Calendar,
@@ -889,7 +889,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-1 px-1">
             <Button variant="ghost" size="sm" className="justify-center h-8" onClick={() => setViewMode('list')}>
-              <Settings size={13} className="mr-1.5" />
+              <LocateFixed size={13} className="mr-1.5" />
               Focus
             </Button>
             <Button
