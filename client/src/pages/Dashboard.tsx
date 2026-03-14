@@ -33,6 +33,9 @@ interface TaskFormState {
   description: string;
   priority: Priority;
   columnId: string;
+  dueDate: string;
+  assigneeName: string;
+  labelsText: string;
 }
 
 const defaultTaskForm = (columnId = 'todo'): TaskFormState => ({
@@ -40,6 +43,9 @@ const defaultTaskForm = (columnId = 'todo'): TaskFormState => ({
   description: '',
   priority: 'medium',
   columnId,
+  dueDate: '',
+  assigneeName: '',
+  labelsText: '',
 });
 
 const modalIds = {
@@ -181,6 +187,9 @@ export const DashboardPage: React.FC = () => {
       description: task.description ?? '',
       priority: task.priority,
       columnId: task.columnId,
+      dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
+      assigneeName: task.assigneeName ?? '',
+      labelsText: task.labels?.join(', ') ?? '',
     });
     openModal(modalIds.editTask);
   };
@@ -218,6 +227,11 @@ export const DashboardPage: React.FC = () => {
 
     const trimmedTitle = taskForm.title.trim();
     if (!trimmedTitle) return;
+    const labels = taskForm.labelsText
+      .split(',')
+      .map((label) => label.trim())
+      .filter((label) => label.length > 0);
+    const normalizedDueDate = taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : null;
 
     setIsSubmittingTask(true);
     try {
@@ -227,6 +241,9 @@ export const DashboardPage: React.FC = () => {
           title: trimmedTitle,
           description: taskForm.description.trim(),
           priority: taskForm.priority,
+          dueDate: normalizedDueDate,
+          assigneeName: taskForm.assigneeName.trim(),
+          labels,
           columnId: taskForm.columnId,
         });
         addToast('Task updated', 'success');
@@ -236,6 +253,9 @@ export const DashboardPage: React.FC = () => {
           title: trimmedTitle,
           description: taskForm.description.trim(),
           priority: taskForm.priority,
+          dueDate: normalizedDueDate,
+          assigneeName: taskForm.assigneeName.trim(),
+          labels,
           boardId: activeBoard.id,
           columnId: taskForm.columnId,
           order: nextOrder,
@@ -835,6 +855,43 @@ export const DashboardPage: React.FC = () => {
                 onChange={(event) => setTaskForm((current) => ({ ...current, description: event.target.value }))}
                 className="w-full rounded-lg border border-border bg-bg-base min-h-[110px] px-3 py-2 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50"
                 placeholder="Describe the expected behavior or outcome."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={taskForm.dueDate}
+                  onChange={(event) => setTaskForm((current) => ({ ...current, dueDate: event.target.value }))}
+                  className="w-full rounded-lg border border-border bg-bg-base h-10 px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
+                  Assignee
+                </label>
+                <input
+                  type="text"
+                  value={taskForm.assigneeName}
+                  onChange={(event) => setTaskForm((current) => ({ ...current, assigneeName: event.target.value }))}
+                  className="w-full rounded-lg border border-border bg-bg-base h-10 px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50"
+                  placeholder="Arjun"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
+                Labels
+              </label>
+              <input
+                type="text"
+                value={taskForm.labelsText}
+                onChange={(event) => setTaskForm((current) => ({ ...current, labelsText: event.target.value }))}
+                className="w-full rounded-lg border border-border bg-bg-base h-10 px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50"
+                placeholder="backend, auth, urgent"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">

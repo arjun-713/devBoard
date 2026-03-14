@@ -27,13 +27,27 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
 };
 
 export const createTask = async (req: AuthRequest, res: Response) => {
-  const { title, description, status, priority, boardId, columnId, order } = req.body;
+  const {
+    title,
+    description,
+    status,
+    priority,
+    dueDate,
+    assigneeName,
+    labels,
+    boardId,
+    columnId,
+    order,
+  } = req.body;
   try {
     const task = new Task({
       title,
       description,
       status,
       priority,
+      dueDate: dueDate || null,
+      assigneeName: assigneeName || '',
+      labels: Array.isArray(labels) ? labels : [],
       boardId,
       columnId,
       order,

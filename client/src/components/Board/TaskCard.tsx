@@ -12,6 +12,12 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOverlay = false }) => {
+  const formattedDueDate = task.dueDate
+    ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'No date';
+  const assigneeLabel = task.assigneeName?.trim() || 'Unassigned';
+  const assigneeInitial = assigneeLabel.charAt(0).toUpperCase();
+
   const {
     attributes,
     listeners,
@@ -62,6 +68,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
         </p>
       )}
 
+      {task.labels && task.labels.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {task.labels.slice(0, 3).map((label) => (
+            <span
+              key={label}
+              className="rounded-md border border-border-strong bg-bg-elevated px-1.5 py-0.5 text-[10px] font-mono text-text-secondary"
+            >
+              #{label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       <div className={`flex items-center justify-between mt-3 ${isDragging ? 'opacity-50 rotate-1 scale-[1.02]' : ''}`}>
         <Badge variant={task.priority}>
           {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
@@ -69,11 +88,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, isDraggingOve
         
         <div className="flex items-center gap-2 text-[11px] font-mono text-text-muted">
           <div className="w-4 h-4 rounded-full bg-brand-blue-deep flex items-center justify-center overflow-hidden">
-            <User size={10} className="text-white" />
+            {assigneeLabel === 'Unassigned' ? (
+              <User size={10} className="text-white" />
+            ) : (
+              <span className="text-[10px] font-semibold text-white">{assigneeInitial}</span>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Calendar size={10} />
-            <span>Apr 12</span>
+            <span>{formattedDueDate}</span>
           </div>
         </div>
       </div>

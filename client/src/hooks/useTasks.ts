@@ -14,6 +14,9 @@ interface CreateTaskInput {
   title: string;
   description: string;
   priority: Task['priority'];
+  dueDate?: string | null;
+  assigneeName?: string;
+  labels?: string[];
   boardId: string;
   columnId: string;
   order: number;
@@ -24,6 +27,9 @@ interface UpdateTaskInput {
   title: string;
   description: string;
   priority: Task['priority'];
+  dueDate?: string | null;
+  assigneeName?: string;
+  labels?: string[];
   columnId: string;
 }
 
