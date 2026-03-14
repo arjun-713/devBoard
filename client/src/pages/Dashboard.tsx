@@ -26,6 +26,8 @@ import type { Task } from '@/store/slices/taskSlice';
 
 type ViewMode = 'board' | 'list';
 type WorkspaceView = 'boards' | 'search' | 'inbox';
+type SearchScope = 'all' | 'boards' | 'tasks';
+type InboxFilter = 'all' | 'overdue' | 'today' | 'upcoming';
 type Priority = Task['priority'];
 
 interface TaskFormState {
@@ -85,6 +87,29 @@ const priorityOptions: Priority[] = ['low', 'medium', 'high'];
 const formatPriority = (priority: Priority) =>
   priority.charAt(0).toUpperCase() + priority.slice(1);
 
+const isSameUtcDate = (left: Date, right: Date) =>
+  left.getUTCFullYear() === right.getUTCFullYear() &&
+  left.getUTCMonth() === right.getUTCMonth() &&
+  left.getUTCDate() === right.getUTCDate();
+
+const getTaskDateMeta = (task: Task) => {
+  if (!task.dueDate) {
+    return { hasDate: false, isOverdue: false, isToday: false, isUpcoming: false };
+  }
+
+  const due = new Date(task.dueDate);
+  const now = new Date();
+  const dueMidnight = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+  const nowMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+  return {
+    hasDate: true,
+    isOverdue: dueMidnight < nowMidnight,
+    isToday: isSameUtcDate(due, now),
+    isUpcoming: dueMidnight > nowMidnight,
+  };
+};
+
 export const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
   const { boards, activeBoardId, setActiveBoard, createBoard, updateBoard, deleteBoard } = useBoards();
@@ -94,6 +119,8 @@ export const DashboardPage: React.FC = () => {
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('boards');
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchScope, setSearchScope] = useState<SearchScope>('all');
+  const [inboxFilter, setInboxFilter] = useState<InboxFilter>('all');
   const [boardName, setBoardName] = useState('');
   const [boardEditName, setBoardEditName] = useState('');
   const [taskForm, setTaskForm] = useState<TaskFormState>(defaultTaskForm());
@@ -116,31 +143,54 @@ export const DashboardPage: React.FC = () => {
   const filteredBoards = useMemo(
     () =>
       boards.filter((board) =>
-        normalizedSearchQuery.length === 0
+        (searchScope === 'all' || searchScope === 'boards') &&
+        (normalizedSearchQuery.length === 0
           ? true
-          : board.name.toLowerCase().includes(normalizedSearchQuery)
+          : board.name.toLowerCase().includes(normalizedSearchQuery))
       ),
-    [boards, normalizedSearchQuery]
+    [boards, normalizedSearchQuery, searchScope]
   );
 
   const filteredTasks = useMemo(
     () =>
       sortedTasks.filter((task) =>
-        normalizedSearchQuery.length === 0
+        (searchScope === 'all' || searchScope === 'tasks') &&
+        (normalizedSearchQuery.length === 0
           ? true
-          : `${task.title} ${task.description ?? ''}`.toLowerCase().includes(normalizedSearchQuery)
+          : `${task.title} ${task.description ?? ''} ${task.assigneeName ?? ''} ${(task.labels ?? []).join(' ')}`
+              .toLowerCase()
+              .includes(normalizedSearchQuery))
       ),
-    [normalizedSearchQuery, sortedTasks]
+    [normalizedSearchQuery, searchScope, sortedTasks]
   );
 
   const inboxTasks = useMemo(
-    () =>
-      [...sortedTasks]
-        .filter((task) => task.status !== 'done' || task.priority === 'high')
-        .sort((firstTask, secondTask) => {
-          const priorityWeight: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
-          return priorityWeight[firstTask.priority] - priorityWeight[secondTask.priority];
-        }),
+    () => {
+      const baseTasks = [...sortedTasks].filter((task) => task.status !== 'done');
+
+      const filteredByTime = baseTasks.filter((task) => {
+        const dateMeta = getTaskDateMeta(task);
+        if (inboxFilter === 'overdue') return dateMeta.isOverdue;
+        if (inboxFilter === 'today') return dateMeta.isToday;
+        if (inboxFilter === 'upcoming') return dateMeta.isUpcoming;
+        return true;
+      });
+
+      return filteredByTime.sort((firstTask, secondTask) => {
+        const priorityWeight: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+        const firstPriority = priorityWeight[firstTask.priority];
+        const secondPriority = priorityWeight[secondTask.priority];
+        if (firstPriority !== secondPriority) {
+          return firstPriority - secondPriority;
+        }
+        return firstTask.order - secondTask.order;
+      });
+    },
+    [inboxFilter, sortedTasks]
+  );
+
+  const inboxTotal = useMemo(
+    () => sortedTasks.filter((task) => task.status !== 'done').length,
     [sortedTasks]
   );
 
@@ -327,6 +377,25 @@ export const DashboardPage: React.FC = () => {
     setActiveBoard(boardId);
   };
 
+  const handleQuickTaskStatus = async (task: Task, targetColumnId: string) => {
+    try {
+      await updateTask({
+        id: task.id,
+        title: task.title,
+        description: task.description ?? '',
+        priority: task.priority,
+        dueDate: task.dueDate ?? null,
+        assigneeName: task.assigneeName ?? '',
+        labels: task.labels ?? [],
+        columnId: targetColumnId,
+      });
+      addToast(`Moved to ${columnIdToLabel(targetColumnId)}`, 'success');
+    } catch (error) {
+      console.error('Failed to move task', error);
+      addToast('Failed to update task status', 'error');
+    }
+  };
+
   const renderWorkspaceContent = () => {
     if (workspaceView === 'search') {
       return (
@@ -343,6 +412,22 @@ export const DashboardPage: React.FC = () => {
               placeholder="Search boards and tasks"
               className="h-11 w-full rounded-lg border border-border bg-bg-base px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50"
             />
+            <div className="mt-3 inline-flex rounded-lg border border-border bg-bg-base p-0.5">
+              {(['all', 'boards', 'tasks'] as SearchScope[]).map((scope) => (
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => setSearchScope(scope)}
+                  className={`rounded-md px-3 py-1 text-[11px] uppercase tracking-[0.08em] transition-all ${
+                    searchScope === scope
+                      ? 'bg-bg-elevated text-text-primary border border-border-strong'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                >
+                  {scope}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -391,6 +476,17 @@ export const DashboardPage: React.FC = () => {
                       {task.description ? (
                         <p className="mt-1 text-[12px] text-text-secondary">{task.description}</p>
                       ) : null}
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-text-muted">
+                        <span>{columnIdToLabel(task.columnId)}</span>
+                        <span>•</span>
+                        <span>{task.assigneeName?.trim() || 'Unassigned'}</span>
+                        {task.labels && task.labels.length > 0 ? (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">#{task.labels.join(' #')}</span>
+                          </>
+                        ) : null}
+                      </div>
                     </button>
                   ))
                 ) : (
@@ -414,34 +510,78 @@ export const DashboardPage: React.FC = () => {
               <h3 className="text-[15px] font-semibold text-text-primary">Inbox</h3>
             </div>
             <p className="text-[13px] text-text-secondary">
-              High-priority and unfinished work from the active board surfaces here for quick review.
+              Action queue for unfinished work. Filter by due-date urgency and update status without opening modals.
             </p>
+            <div className="mt-3 inline-flex rounded-lg border border-border bg-bg-base p-0.5">
+              {(['all', 'overdue', 'today', 'upcoming'] as InboxFilter[]).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => setInboxFilter(filter)}
+                  className={`rounded-md px-3 py-1 text-[11px] uppercase tracking-[0.08em] transition-all ${
+                    inboxFilter === filter
+                      ? 'bg-bg-elevated text-text-primary border border-border-strong'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-xl border border-border bg-bg-surface">
             {inboxTasks.length > 0 ? (
               inboxTasks.map((task) => (
-                <button
+                <div
                   key={task.id}
-                  type="button"
-                  onClick={() => openEditTaskModal(task)}
-                  className="flex w-full items-start justify-between gap-4 border-b border-border-subtle px-4 py-4 text-left transition-all last:border-b-0 hover:bg-bg-elevated"
+                  className="flex items-start justify-between gap-4 border-b border-border-subtle px-4 py-4 text-left transition-all last:border-b-0 hover:bg-bg-elevated"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditTaskModal(task)}
+                      className="flex items-center gap-2 text-left"
+                    >
                       <span className={`h-2 w-2 rounded-full ${priorityColorClass[task.priority]}`} />
                       <span className="truncate text-[13px] font-medium text-text-primary">{task.title}</span>
-                    </div>
+                    </button>
                     <p className="mt-1 text-[12px] text-text-secondary">
-                      {columnIdToLabel(task.columnId)} · {task.description || 'No description'}
+                      {columnIdToLabel(task.columnId)} · {task.assigneeName?.trim() || 'Unassigned'} ·{' '}
+                      {task.dueDate
+                        ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : 'No due date'}
+                    </p>
+                    <p className="mt-1 text-[12px] text-text-muted">
+                      {task.description || 'No description'}
                     </p>
                   </div>
-                  <Badge variant={task.priority}>{formatPriority(task.priority)}</Badge>
-                </button>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={task.priority}>{formatPriority(task.priority)}</Badge>
+                    {task.columnId !== 'inprogress' ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void handleQuickTaskStatus(task, 'inprogress')}
+                      >
+                        Start
+                      </Button>
+                    ) : null}
+                    {task.columnId !== 'done' ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void handleQuickTaskStatus(task, 'done')}
+                      >
+                        Done
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               ))
             ) : (
               <div className="px-4 py-12 text-center">
-                <p className="text-[13px] text-text-secondary">No urgent or unfinished work in this board.</p>
+                <p className="text-[13px] text-text-secondary">No tasks in this inbox filter.</p>
               </div>
             )}
           </div>
@@ -578,7 +718,7 @@ export const DashboardPage: React.FC = () => {
                 <Bell size={14} className="text-text-muted" />
                 <span>Inbox</span>
                 <span className="ml-auto rounded-full bg-brand-orange/10 px-1.5 py-0.5 text-[10px] text-brand-orange">
-                  {inboxTasks.length}
+                  {inboxTotal}
                 </span>
               </button>
             </div>
