@@ -18,12 +18,20 @@ import type { Task } from '@/store/slices/taskSlice';
 interface BoardProps {
   columns: string[];
   tasks: Task[];
+  isLoading?: boolean;
   onAddTask?: (columnId: string) => void;
   onTaskClick?: (task: Task) => void;
   onMoveTask?: (taskId: string, columnId: string, index: number) => void;
 }
 
-export const Board: React.FC<BoardProps> = ({ columns, tasks, onAddTask, onTaskClick, onMoveTask }) => {
+export const Board: React.FC<BoardProps> = ({
+  columns,
+  tasks,
+  isLoading = false,
+  onAddTask,
+  onTaskClick,
+  onMoveTask,
+}) => {
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -99,6 +107,7 @@ export const Board: React.FC<BoardProps> = ({ columns, tasks, onAddTask, onTaskC
               id={columnId}
               title={columnName}
               tasks={columnTasks}
+              isLoading={isLoading}
               onAddTask={onAddTask}
               onTaskClick={onTaskClick}
             />

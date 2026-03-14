@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/store';
 import { setTasks, moveTask as moveTaskAction } from '@/store/slices/taskSlice';
@@ -117,15 +117,19 @@ const reorderTasks = (
 export const useTasks = (boardId: string | null) => {
   const dispatch = useDispatch<AppDispatch>();
   const tasks = useSelector((state: RootState) => state.tasks.tasks);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchTasks = async () => {
     if (!boardId) return;
+    setIsLoading(true);
 
     try {
       const { data } = await client.get<ApiTask[]>(`/tasks?boardId=${boardId}`);
       dispatch(setTasks(data.map(mapTask)));
     } catch (err) {
       console.error('Failed to fetch tasks', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,19 +183,24 @@ export const useTasks = (boardId: string | null) => {
   useEffect(() => {
     const loadTasks = async () => {
       if (!boardId) return;
+      setIsLoading(true);
 
       try {
         const { data } = await client.get<ApiTask[]>(`/tasks?boardId=${boardId}`);
         dispatch(setTasks(data.map(mapTask)));
       } catch (err) {
         console.error('Failed to fetch tasks', err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (boardId) {
       void loadTasks();
+    } else {
+      setIsLoading(false);
     }
   }, [boardId, dispatch]);
 
-  return { tasks, fetchTasks, createTask, updateTask, deleteTask, moveTask };
+  return { tasks, isLoading, fetchTasks, createTask, updateTask, deleteTask, moveTask };
 };

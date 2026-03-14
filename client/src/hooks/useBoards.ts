@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/store';
 import { setBoards, setActiveBoard } from '@/store/slices/boardSlice';
@@ -24,8 +24,10 @@ const mapBoard = (board: ApiBoard): Board => ({
 export const useBoards = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { boards, activeBoardId, loading, error } = useSelector(selectBoardState);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchBoards = async () => {
+    setIsLoading(true);
     try {
       const { data } = await client.get<ApiBoard[]>('/boards');
       const transformedBoards = data.map(mapBoard);
@@ -37,6 +39,8 @@ export const useBoards = () => {
       }
     } catch (fetchError) {
       console.error('Failed to fetch boards', fetchError);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -85,6 +89,7 @@ export const useBoards = () => {
 
   useEffect(() => {
     const loadBoards = async () => {
+      setIsLoading(true);
       try {
         const { data } = await client.get<ApiBoard[]>('/boards');
         const transformedBoards = data.map(mapBoard);
@@ -96,6 +101,8 @@ export const useBoards = () => {
         }
       } catch (fetchError) {
         console.error('Failed to fetch boards', fetchError);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -107,6 +114,7 @@ export const useBoards = () => {
     activeBoardId,
     loading,
     error,
+    isLoading,
     fetchBoards,
     createBoard,
     deleteBoard,

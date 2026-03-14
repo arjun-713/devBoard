@@ -4,7 +4,9 @@ import {
   Layout,
   Plus,
   Search,
+  SearchX,
   Bell,
+  Inbox,
   Settings,
   ChevronRight,
   Layers,
@@ -112,8 +114,8 @@ const getTaskDateMeta = (task: Task) => {
 
 export const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { boards, activeBoardId, setActiveBoard, createBoard, updateBoard, deleteBoard } = useBoards();
-  const { tasks, createTask, updateTask, deleteTask, moveTask } = useTasks(activeBoardId);
+  const { boards, activeBoardId, setActiveBoard, createBoard, updateBoard, deleteBoard, isLoading: isBoardsLoading } = useBoards();
+  const { tasks, isLoading: isTasksLoading, createTask, updateTask, deleteTask, moveTask } = useTasks(activeBoardId);
   const { activeModal, openModal, closeModal, toasts, addToast, removeToast } = useUIStore();
 
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('boards');
@@ -398,6 +400,9 @@ export const DashboardPage: React.FC = () => {
 
   const renderWorkspaceContent = () => {
     if (workspaceView === 'search') {
+      const hasNoSearchResults =
+        normalizedSearchQuery.length > 0 && filteredBoards.length === 0 && filteredTasks.length === 0;
+
       return (
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-6">
           <div className="rounded-xl border border-border bg-bg-surface p-5">
@@ -430,7 +435,14 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          {hasNoSearchResults ? (
+            <div className="rounded-xl border border-border bg-bg-surface px-6 py-14 text-center">
+              <SearchX size={22} className="mx-auto text-text-muted" />
+              <h3 className="mt-3 text-[14px] font-semibold text-text-secondary">No Results</h3>
+              <p className="mt-1 text-[12px] text-[#555550]">Try a different keyword or switch search scope.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
             <div className="rounded-xl border border-border bg-bg-surface">
               <div className="border-b border-border px-4 py-3 text-[11px] uppercase tracking-[0.08em] text-text-secondary">
                 Boards
@@ -496,7 +508,8 @@ export const DashboardPage: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -580,8 +593,10 @@ export const DashboardPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="px-4 py-12 text-center">
-                <p className="text-[13px] text-text-secondary">No tasks in this inbox filter.</p>
+              <div className="px-4 py-14 text-center">
+                <Inbox size={20} className="mx-auto text-text-muted" />
+                <h3 className="mt-3 text-[14px] font-semibold text-text-secondary">Inbox Is Clear</h3>
+                <p className="mt-1 text-[12px] text-[#555550]">No tasks in the selected inbox filter.</p>
               </div>
             )}
           </div>
@@ -602,6 +617,20 @@ export const DashboardPage: React.FC = () => {
           <Button className="mt-6" variant="secondary" onClick={openCreateBoardModal}>
             Create your first board
           </Button>
+        </div>
+      );
+    }
+
+    if (activeBoard.columns.length === 0 && sortedTasks.length === 0) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto">
+          <div className="w-16 h-16 bg-bg-surface border border-border rounded-2xl flex items-center justify-center mb-4">
+            <FolderKanban className="text-text-muted w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-semibold text-text-secondary">Empty Board</h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-[#555550]">
+            This board has no columns or tasks yet. Add structure first, then start adding work.
+          </p>
         </div>
       );
     }
@@ -671,6 +700,7 @@ export const DashboardPage: React.FC = () => {
       <Board
         columns={activeBoard.columns}
         tasks={sortedTasks}
+        isLoading={isTasksLoading}
         onAddTask={openCreateTaskModal}
         onTaskClick={openEditTaskModal}
         onMoveTask={moveTask}
@@ -739,7 +769,16 @@ export const DashboardPage: React.FC = () => {
               </button>
             </div>
             <div className="space-y-0.5">
-              {boards.map((board) => (
+              {isBoardsLoading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={`board-skeleton-${index}`}
+                      className="h-[30px] rounded-md border border-border bg-[#1C1C1C] animate-pulse"
+                    />
+                  ))
+                : null}
+              {!isBoardsLoading
+                ? boards.map((board) => (
                 <button
                   key={board.id}
                   onClick={() => handleSelectBoard(board.id)}
@@ -758,8 +797,9 @@ export const DashboardPage: React.FC = () => {
                   />
                   <span className="truncate">{board.name}</span>
                 </button>
-              ))}
-              {boards.length === 0 ? (
+                  ))
+                : null}
+              {!isBoardsLoading && boards.length === 0 ? (
                 <button
                   type="button"
                   onClick={openCreateBoardModal}

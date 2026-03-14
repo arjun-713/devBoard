@@ -9,11 +9,19 @@ interface ColumnProps {
   id: string;
   title: string;
   tasks: Task[];
+  isLoading?: boolean;
   onAddTask?: (columnId: string) => void;
   onTaskClick?: (task: Task) => void;
 }
 
-export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onAddTask, onTaskClick }) => {
+export const Column: React.FC<ColumnProps> = ({
+  id,
+  title,
+  tasks,
+  isLoading = false,
+  onAddTask,
+  onTaskClick,
+}) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${id}`,
     data: {
@@ -66,6 +74,22 @@ export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onAddTask, onT
       >
         <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
           <div className="flex h-full flex-col gap-2 overflow-y-auto pr-1">
+            {isLoading
+              ? Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`${id}-skeleton-${index}`}
+                    className="rounded-lg border border-border bg-[#1C1C1C] p-3 animate-pulse"
+                  >
+                    <div className="h-3.5 w-3/4 rounded bg-bg-overlay" />
+                    <div className="mt-2 h-3 w-full rounded bg-bg-overlay" />
+                    <div className="mt-1.5 h-3 w-5/6 rounded bg-bg-overlay" />
+                    <div className="mt-3 flex justify-between">
+                      <div className="h-4 w-12 rounded bg-bg-overlay" />
+                      <div className="h-4 w-16 rounded bg-bg-overlay" />
+                    </div>
+                  </div>
+                ))
+              : null}
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -75,9 +99,11 @@ export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onAddTask, onT
               />
             ))}
             
-            {tasks.length === 0 && (
+            {!isLoading && tasks.length === 0 && (
               <div className="border border-dashed border-border rounded-lg p-4 flex flex-col items-center justify-center text-center">
-                <p className="text-[11px] text-text-muted italic">Drop a task here</p>
+                <Plus size={16} className="text-text-muted mb-2" />
+                <h4 className="text-[12px] font-medium text-text-secondary">No Tasks</h4>
+                <p className="text-[11px] text-[#555550] mt-1">Use + to add a task in this column.</p>
               </div>
             )}
           </div>
