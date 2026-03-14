@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { store } from '@/store';
 import { logout, setCredentials } from '@/store/slices/authSlice';
+import { useUIStore } from '@/store/zustand/uiStore';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -53,6 +54,18 @@ client.interceptors.response.use(
         store.dispatch(logout());
         localStorage.removeItem('refreshToken');
         return Promise.reject(refreshError);
+      }
+    }
+
+    const status = error.response?.status;
+    const message =
+      error.response?.data?.message ||
+      (status ? `Request failed (${status})` : 'Network request failed');
+
+    if (!originalRequest?._toastShown) {
+      useUIStore.getState().addToast(message, 'error');
+      if (originalRequest) {
+        originalRequest._toastShown = true;
       }
     }
 

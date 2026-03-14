@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   LogOut,
   Layout,
@@ -24,6 +24,7 @@ import { Board } from '@/components/Board/Board';
 import { Badge } from '@/components/UI/Badge';
 import { Modal } from '@/components/UI/Modal';
 import { Select } from '@/components/UI/Select';
+import { ErrorBoundary } from '@/components/UI/ErrorBoundary';
 import { useUIStore } from '@/store/zustand/uiStore';
 import type { Task } from '@/store/slices/taskSlice';
 
@@ -135,6 +136,25 @@ export const DashboardPage: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const activeBoard = boards.find((board) => board.id === activeBoardId) ?? null;
+
+  useEffect(() => {
+    if (activeBoard?.name) {
+      document.title = `${activeBoard.name} | DevBoard`;
+      return;
+    }
+
+    if (workspaceView === 'search') {
+      document.title = 'Search | DevBoard';
+      return;
+    }
+
+    if (workspaceView === 'inbox') {
+      document.title = 'Inbox | DevBoard';
+      return;
+    }
+
+    document.title = 'DevBoard';
+  }, [activeBoard?.name, workspaceView]);
 
   const sortedTasks = useMemo(
     () => [...tasks].sort((firstTask, secondTask) => firstTask.order - secondTask.order),
@@ -422,6 +442,7 @@ export const DashboardPage: React.FC = () => {
         normalizedSearchQuery.length > 0 && filteredBoards.length === 0 && filteredTasks.length === 0;
 
       return (
+        <ErrorBoundary>
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-6">
           <div className="rounded-xl border border-border bg-bg-surface p-5">
             <div className="mb-4 flex items-center gap-2">
@@ -529,11 +550,13 @@ export const DashboardPage: React.FC = () => {
             </div>
           )}
         </div>
+        </ErrorBoundary>
       );
     }
 
     if (workspaceView === 'inbox') {
       return (
+        <ErrorBoundary>
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-4">
           <div className="rounded-xl border border-border bg-bg-surface p-5">
             <div className="mb-2 flex items-center gap-2">
@@ -619,6 +642,7 @@ export const DashboardPage: React.FC = () => {
             )}
           </div>
         </div>
+        </ErrorBoundary>
       );
     }
 
@@ -715,6 +739,7 @@ export const DashboardPage: React.FC = () => {
     }
 
     return (
+      <ErrorBoundary>
       <div className="flex h-full flex-col gap-4">
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-bg-surface p-3 sm:grid-cols-4">
           <div>
@@ -743,6 +768,7 @@ export const DashboardPage: React.FC = () => {
           onMoveTask={moveTask}
         />
       </div>
+      </ErrorBoundary>
     );
   };
 
