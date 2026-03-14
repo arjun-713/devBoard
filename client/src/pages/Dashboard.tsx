@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useBoards } from '@/hooks/useBoards';
 import { useTasks } from '@/hooks/useTasks';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/UI/Button';
 import { Board } from '@/components/Board/Board';
 import { Badge } from '@/components/UI/Badge';
@@ -140,7 +141,8 @@ export const DashboardPage: React.FC = () => {
     [tasks]
   );
 
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const normalizedSearchQuery = debouncedSearchQuery.trim().toLowerCase();
 
   const filteredBoards = useMemo(
     () =>

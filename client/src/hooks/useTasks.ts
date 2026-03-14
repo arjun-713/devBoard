@@ -165,6 +165,7 @@ export const useTasks = (boardId: string | null) => {
       return;
     }
 
+    const previousTasks = tasks;
     const reorderedTasks = reorderTasks(tasks, taskId, columnId, order);
     dispatch(moveTaskAction(reorderedTasks));
 
@@ -176,7 +177,8 @@ export const useTasks = (boardId: string | null) => {
       });
     } catch (err) {
       console.error('Failed to move task', err);
-      void fetchTasks(); // Rollback
+      dispatch(moveTaskAction(previousTasks));
+      void fetchTasks();
     }
   };
 
