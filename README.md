@@ -30,6 +30,30 @@ DevBoard intentionally splits state management by responsibility:
 
 This separation keeps network data predictable and testable in Redux while avoiding boilerplate for purely presentational state.
 
+## 🌐 Troubleshooting: Site Not Loading (India / ISP DNS Issue)
+
+If the live demo isn't loading, your ISP's DNS may be blocking Railway domains.
+Apply this **temporary** DNS fix (resets on reboot):
+
+**Linux**
+```bash
+sudo resolvectl dns $(ip route | grep default | awk '{print $5}') 8.8.8.8 8.8.4.4
+```
+
+**macOS**
+```bash
+sudo networksetup -setdnsservers Wi-Fi 8.8.8.8 8.8.4.4
+```
+
+**Windows** (run PowerShell as Administrator)
+```powershell
+$adapter = Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object -First 1 -ExpandProperty Name
+Set-DnsClientServerAddress -InterfaceAlias $adapter -ServerAddresses ("8.8.8.8","8.8.4.4")
+```
+
+> These commands are temporary — DNS resets to default on reboot.
+> To undo immediately: Linux: `sudo resolvectl revert <interface>` | macOS: `sudo networksetup -setdnsservers Wi-Fi empty` | Windows: `Set-DnsClientServerAddress -InterfaceAlias $adapter -ResetServerAddresses`
+
 ## Local Setup
 
 ### 1) Server
