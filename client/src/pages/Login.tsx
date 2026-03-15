@@ -2,11 +2,21 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/UI/Button';
-import { Layout } from 'lucide-react';
+import {
+  Activity,
+  Eye,
+  EyeOff,
+  Grip,
+  Layout,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const { login, loginDemo, loading, error } = useAuth();
 
@@ -21,73 +31,120 @@ export const LoginPage: React.FC = () => {
     setIsDemoLoading(false);
   };
 
+  const featureHighlights = [
+    { label: 'Secure token-based sessions', icon: ShieldCheck },
+    { label: 'Drag-and-drop task delivery', icon: Grip },
+    { label: 'Real-time activity tracking', icon: Activity },
+  ];
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-bg-base px-4">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-brand-orange/10 flex items-center justify-center rounded-xl mb-4 border border-brand-orange/20">
-            <Layout className="text-brand-orange w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Welcome back</h1>
-          <p className="text-text-secondary mt-2">Log in to your DevBoard account</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
-          <div>
-            <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary mb-1.5 ml-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-bg-base border border-border rounded-lg h-10 px-3 text-[13px] text-text-primary focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 outline-none transition-all"
-              placeholder="name@company.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary mb-1.5 ml-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-bg-base border border-border rounded-lg h-10 px-3 text-[13px] text-text-primary focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 outline-none transition-all"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="text-[12px] text-brand-pumpkin bg-brand-pumpkin/10 px-3 py-2 rounded-md border border-brand-pumpkin/20">
-              {error}
+    <div className="flex min-h-screen items-center bg-bg-base px-4 py-8 sm:py-10">
+      <div className="mx-auto grid w-full max-w-[980px] gap-6 lg:grid-cols-[420px_460px] lg:justify-center lg:gap-6">
+        <section className="rounded-[14px] border border-border bg-bg-surface p-6 sm:p-7">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-orange text-text-inverted">
+              <Layout size={18} />
             </div>
-          )}
+            <div>
+              <h1 className="text-[28px] font-semibold tracking-tight text-text-primary">DevBoard</h1>
+            </div>
+          </div>
 
-          <Button type="submit" className="w-full" isLoading={loading}>
-            Sign in
-          </Button>
-        </form>
+          <p className="mt-4 text-[14px] leading-[1.6] text-text-secondary">
+            Kanban workspace for engineers shipping weekly.
+            <br />
+            Keep planning, delivery, and collaboration in one place.
+          </p>
 
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full mt-3"
-          isLoading={isDemoLoading}
-          onClick={handleDemoLogin}
-        >
-          Try Demo →
-        </Button>
+          <div className="mt-6 grid gap-3">
+            {featureHighlights.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-lg border border-border-subtle bg-bg-base px-3 py-3 transition-all duration-150 hover:-translate-y-0.5 hover:border-border-strong hover:bg-bg-elevated"
+              >
+                <item.icon size={14} className="text-brand-orange" />
+                <p className="mt-2 text-[13px] leading-[1.45] text-text-secondary">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        <p className="text-center mt-6 text-text-secondary text-[13px]">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-brand-orange hover:underline font-medium">
-            Register now
-          </Link>
-        </p>
+        <section className="rounded-[14px] border border-[#2A2A2E] bg-[#141417] p-8 sm:p-9">
+          <h2 className="text-[28px] font-semibold tracking-tight text-text-primary">Welcome back</h2>
+          <p className="mt-1 text-[14px] text-text-secondary">Sign in to continue to your DevBoard workspace.</p>
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-1.5 ml-1 block text-[12px] uppercase tracking-[0.08em] text-text-secondary">
+                Email
+              </label>
+              <div className="group flex h-11 items-center gap-2 rounded-lg border border-[#2A2A2E] bg-[#0F0F11] px-3 transition-all focus-within:border-brand-orange/60 focus-within:ring-1 focus-within:ring-brand-orange/35">
+                <Mail size={14} className="text-text-muted group-focus-within:text-brand-orange" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-full w-full bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted"
+                  placeholder="name@company.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 ml-1 block text-[12px] uppercase tracking-[0.08em] text-text-secondary">
+                Password
+              </label>
+              <div className="group flex h-11 items-center gap-2 rounded-lg border border-[#2A2A2E] bg-[#0F0F11] px-3 transition-all focus-within:border-brand-orange/60 focus-within:ring-1 focus-within:ring-brand-orange/35">
+                <Lock size={14} className="text-text-muted group-focus-within:text-brand-orange" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-full w-full bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="text-text-muted transition-colors hover:text-text-primary"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+
+            {error ? (
+              <div className="rounded-md border border-brand-pumpkin/25 bg-brand-pumpkin/10 px-3 py-2 text-[12px] text-brand-pumpkin">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="space-y-2 pt-1">
+              <Button type="submit" className="w-full" isLoading={loading}>
+                Sign in
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full border border-border text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                isLoading={isDemoLoading}
+                onClick={handleDemoLogin}
+              >
+                Try demo
+              </Button>
+            </div>
+          </form>
+
+          <div className="mt-6 border-t border-border-subtle pt-4 text-[13px] text-text-secondary">
+            Don&apos;t have an account?{' '}
+            <Link to="/register" className="font-semibold text-brand-orange transition-colors hover:text-brand-orange/85">
+              Create one
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );
