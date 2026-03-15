@@ -12,13 +12,10 @@ import {
   Layers,
   Calendar,
   FolderKanban,
-  Pencil,
   Trash2,
   X,
   ChevronDown,
   SlidersHorizontal,
-  ArrowUpRight,
-  ArrowDownRight,
   Gauge,
   Clock3,
   AlertTriangle,
@@ -34,6 +31,7 @@ import { Board } from '@/components/Board/Board';
 import { Badge } from '@/components/UI/Badge';
 import { Modal } from '@/components/UI/Modal';
 import { Select } from '@/components/UI/Select';
+import { DatePicker } from '@/components/UI/DatePicker';
 import { ErrorBoundary } from '@/components/UI/ErrorBoundary';
 import { useUIStore } from '@/store/zustand/uiStore';
 import type { Task } from '@/store/slices/taskSlice';
@@ -124,6 +122,20 @@ const getTaskDateMeta = (task: Task) => {
     isToday: isSameUtcDate(due, now),
     isUpcoming: dueMidnight > nowMidnight,
   };
+};
+
+const formatRelativeTime = (isoDate?: string | null) => {
+  if (!isoDate) return 'No updates';
+  const target = new Date(isoDate).getTime();
+  if (Number.isNaN(target)) return 'No updates';
+
+  const diffMs = target - Date.now();
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  if (Math.abs(diffHours) < 24) {
+    return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(diffHours, 'hour');
+  }
+  const diffDays = Math.round(diffHours / 24);
+  return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(diffDays, 'day');
 };
 
 export const DashboardPage: React.FC = () => {
@@ -321,6 +333,19 @@ export const DashboardPage: React.FC = () => {
     colorClass: priorityColorClass[priority],
   }));
 
+  const boardFilterOptions = [
+    { value: 'all', label: 'All priorities' },
+    { value: 'high', label: 'High priority', colorClass: priorityColorClass.high },
+    { value: 'medium', label: 'Medium priority', colorClass: priorityColorClass.medium },
+    { value: 'low', label: 'Low priority', colorClass: priorityColorClass.low },
+  ];
+
+  const boardSortOptions = [
+    { value: 'manual', label: 'Sort: Manual' },
+    { value: 'priority', label: 'Sort: Priority' },
+    { value: 'due', label: 'Sort: Due date' },
+  ];
+
   const openCreateBoardModal = () => {
     setBoardName('');
     openModal(modalIds.createBoard);
@@ -501,6 +526,47 @@ export const DashboardPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to move task', error);
       addToast('Failed to update task status', 'error');
+    }
+  };
+
+  const handleTaskPriorityChange = async (task: Task, priority: Priority) => {
+    try {
+      await updateTask({
+        id: task.id,
+        title: task.title,
+        description: task.description ?? '',
+        priority,
+        dueDate: task.dueDate ?? null,
+        assigneeName: task.assigneeName ?? '',
+        labels: task.labels ?? [],
+        columnId: task.columnId,
+      });
+      addToast(`Priority set to ${formatPriority(priority)}`, 'success');
+    } catch (error) {
+      console.error('Failed to update task priority', error);
+      addToast('Failed to update task priority', 'error');
+    }
+  };
+
+  const handleTaskMoveFromMenu = async (task: Task, targetColumnId: string) => {
+    if (task.columnId === targetColumnId) return;
+    try {
+      const targetIndex = tasks.filter((item) => item.columnId === targetColumnId).length;
+      await moveTask(task.id, targetColumnId, targetIndex);
+      addToast(`Moved to ${columnIdToLabel(targetColumnId)}`, 'success');
+    } catch (error) {
+      console.error('Failed to move task from menu', error);
+      addToast('Failed to move task', 'error');
+    }
+  };
+
+  const handleTaskDeleteFromMenu = async (task: Task) => {
+    try {
+      await deleteTask(task.id);
+      addToast('Task deleted', 'success');
+    } catch (error) {
+      console.error('Failed to delete task', error);
+      addToast('Failed to delete task', 'error');
     }
   };
 
@@ -814,77 +880,62 @@ export const DashboardPage: React.FC = () => {
             {
               label: 'Total Tasks',
               value: boardStats.total,
-              trend: '+8%',
               icon: Gauge,
               valueClass: 'text-text-primary',
-              trendClass: 'text-emerald-300',
             },
             {
               label: 'In Progress',
               value: boardStats.inProgress,
-              trend: '+4%',
               icon: Clock3,
               valueClass: 'text-[#FFB347]',
-              trendClass: 'text-emerald-300',
             },
             {
               label: 'Overdue',
               value: boardStats.overdue,
-              trend: '-3%',
               icon: AlertTriangle,
               valueClass: 'text-[#FF6D5E]',
-              trendClass: 'text-red-300',
             },
             {
               label: 'Completion Rate',
               value: `${boardStats.completionRate}%`,
-              trend: '+6%',
               icon: CircleCheckBig,
               valueClass: 'text-[#5ED3FF]',
-              trendClass: 'text-emerald-300',
             },
           ].map((metric) => (
             <div
               key={metric.label}
-              className="rounded-[14px] border border-[#2A2A2E] bg-gradient-to-b from-[#18181C] to-[#131316] p-3.5 shadow-[0_12px_28px_rgba(0,0,0,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#3B3B44]"
+              className="rounded-xl border border-border-subtle bg-gradient-to-b from-[#151518] to-[#121215] px-3 py-2.5 transition-colors hover:border-border"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start">
                 <metric.icon size={15} className="text-text-secondary" />
-                <span className={`inline-flex items-center gap-1 text-[11px] ${metric.trendClass}`}>
-                  {metric.trend.startsWith('-') ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
-                  {metric.trend}
-                </span>
               </div>
-              <p className="mt-3 text-[11px] uppercase tracking-[0.08em] text-text-muted">{metric.label}</p>
+              <p className="mt-2.5 text-[11px] uppercase tracking-[0.08em] text-text-muted">{metric.label}</p>
               <p className={`mt-1 text-[22px] font-semibold tracking-tight ${metric.valueClass}`}>{metric.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-bg-surface/80 px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-[#101013] px-3 py-2.5 xl:mr-[296px]">
           <div className="flex items-center gap-2 text-[12px] text-text-secondary">
             <SlidersHorizontal size={13} />
             <span>Filter</span>
           </div>
-          <select
-            value={boardPriorityFilter}
-            onChange={(event) => setBoardPriorityFilter(event.target.value as BoardPriorityFilter)}
-            className="h-8 rounded-md border border-border bg-bg-base px-2.5 text-[12px] text-text-primary outline-none"
-          >
-            <option value="all">All priorities</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <select
-            value={boardSort}
-            onChange={(event) => setBoardSort(event.target.value as BoardSort)}
-            className="h-8 rounded-md border border-border bg-bg-base px-2.5 text-[12px] text-text-primary outline-none"
-          >
-            <option value="manual">Sort: Manual</option>
-            <option value="priority">Sort: Priority</option>
-            <option value="due">Sort: Due date</option>
-          </select>
+          <div className="w-[170px]">
+            <Select
+              label=""
+              value={boardPriorityFilter}
+              options={boardFilterOptions}
+              onChange={(value) => setBoardPriorityFilter(value as BoardPriorityFilter)}
+            />
+          </div>
+          <div className="w-[160px]">
+            <Select
+              label=""
+              value={boardSort}
+              options={boardSortOptions}
+              onChange={(value) => setBoardSort(value as BoardSort)}
+            />
+          </div>
           <span className="ml-auto rounded-md border border-border bg-bg-base px-2 py-1 text-[11px] text-text-muted">
             <Command size={11} className="mr-1 inline" />
             Cmd/Ctrl + K
@@ -894,20 +945,32 @@ export const DashboardPage: React.FC = () => {
         <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
           <Board
             columns={activeBoard.columns}
-            tasks={sortedTasks}
+            tasks={boardTasks}
             isLoading={isTasksLoading}
             onAddTask={openCreateTaskModal}
             onTaskClick={openEditTaskModal}
             onMoveTask={moveTask}
+            onEditTask={openEditTaskModal}
+            onChangeTaskPriority={handleTaskPriorityChange}
+            onMoveTaskToColumn={handleTaskMoveFromMenu}
+            onAssignTask={openEditTaskModal}
+            onDeleteTask={handleTaskDeleteFromMenu}
           />
-          <aside className="hidden xl:block rounded-xl border border-border bg-bg-surface/80 p-3">
+          <aside className="hidden w-[280px] xl:block rounded-xl border border-border bg-bg-surface/80 p-3">
             <h3 className="text-[11px] uppercase tracking-[0.08em] text-text-secondary">Activity feed</h3>
-            <div className="mt-3 space-y-2">
-              {boardTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="rounded-lg border border-border-subtle bg-bg-base px-2.5 py-2">
+            <div className="mt-3 divide-y divide-border-subtle">
+              {boardTasks.slice(0, 6).map((task) => (
+                <div key={task.id} className="py-2.5 first:pt-0">
                   <p className="truncate text-[12px] font-medium text-text-primary">{task.title}</p>
+                  <p className="mt-0.5 text-[11px] text-text-muted">
+                    {task.assigneeName?.trim() || 'Frontend Team'} • {formatPriority(task.priority)}
+                  </p>
                   <p className="mt-1 text-[11px] text-text-muted">
-                    {task.assigneeName?.trim() || 'Unassigned'} · {formatPriority(task.priority)}
+                    {formatRelativeTime(
+                      task.activity && task.activity.length > 0
+                        ? task.activity[task.activity.length - 1]?.timestamp
+                        : task.dueDate
+                    )}
                   </p>
                 </div>
               ))}
@@ -925,8 +988,8 @@ export const DashboardPage: React.FC = () => {
   const sidebarButtonClass = (isActive: boolean) =>
     `w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] transition-all ${
       isActive
-        ? 'bg-bg-elevated text-text-primary font-medium border border-border shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]'
-        : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated hover:shadow-[0_0_22px_rgba(0,180,216,0.08)]'
+        ? 'bg-bg-elevated text-text-primary font-medium border border-border'
+        : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated'
     }`;
 
   return (
@@ -1114,42 +1177,15 @@ export const DashboardPage: React.FC = () => {
                     : 'Select a board'}
             </h2>
             {(workspaceView === 'boards' && activeBoard) || workspaceView === 'inbox' ? (
-              <div className="flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 shadow-[0_0_16px_rgba(0,180,216,0.2)]">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan shadow-[0_0_10px_rgba(0,180,216,0.7)]" />
-                <span className="text-[10px] font-medium text-text-secondary uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 rounded-[8px] bg-[#163B3D] px-2.5 py-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#3DD2C3]" />
+                <span className="text-[10px] font-medium uppercase tracking-widest text-[#3DD2C3]">
                   {workspaceView === 'inbox' ? 'Priority Queue' : 'Active'}
                 </span>
               </div>
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-lg border border-border bg-bg-surface px-3 md:flex">
-              <Search size={14} className="text-text-muted" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search tasks, boards, people..."
-                className="h-9 w-[230px] bg-transparent text-[12px] text-text-primary outline-none placeholder:text-text-muted"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsCommandPaletteOpen(true)}
-              className="hidden rounded-md border border-border bg-bg-surface px-2 py-1 text-[11px] text-text-muted transition-all hover:text-text-primary md:block"
-            >
-              <Command size={11} className="mr-1 inline" />
-              K
-            </button>
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-bg-surface text-text-secondary transition-all hover:text-text-primary"
-            >
-              <Bell size={14} />
-            </button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-blue bg-brand-blue-deep text-[12px] font-semibold text-white">
-              {user?.name?.charAt(0) || 'U'}
-            </div>
             <div className="flex items-center bg-bg-surface border border-border rounded-lg p-0.5 mr-2">
               <button
                 type="button"
@@ -1174,19 +1210,13 @@ export const DashboardPage: React.FC = () => {
                 List
               </button>
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={openEditBoardModal}
-              disabled={!activeBoard || workspaceView !== 'boards'}
-            >
-              <Pencil size={13} className="mr-1.5" />
-              Board
-            </Button>
             <Button size="sm" onClick={() => openCreateTaskModal()} disabled={!activeBoard}>
               <Plus size={14} className="mr-1.5" />
               Add Task
             </Button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-blue bg-brand-blue-deep text-[12px] font-semibold text-white">
+              {user?.name?.charAt(0) || 'U'}
+            </div>
           </div>
         </header>
 
@@ -1240,6 +1270,7 @@ export const DashboardPage: React.FC = () => {
               {[
                 { label: 'Open Search', action: () => setWorkspaceView('search') },
                 { label: 'Open Inbox', action: () => setWorkspaceView('inbox') },
+                { label: 'Board Settings', action: () => openEditBoardModal() },
                 { label: 'New Task', action: () => openCreateTaskModal() },
                 { label: 'New Board', action: () => openCreateBoardModal() },
               ].map((item) => (
@@ -1338,7 +1369,7 @@ export const DashboardPage: React.FC = () => {
 
       {activeModal === modalIds.createTask || activeModal === modalIds.editTask ? (
         <Modal
-          title={editingTask ? 'Edit task' : 'Add task'}
+          title={editingTask ? 'Task details' : 'Add task'}
           description={
             editingTask
               ? 'Update the task details, shift its priority, or move it into a different column.'
@@ -1373,14 +1404,11 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
-                  Due Date
-                </label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="Due Date"
                   value={taskForm.dueDate}
-                  onChange={(event) => setTaskForm((current) => ({ ...current, dueDate: event.target.value }))}
-                  className="w-full rounded-lg border border-border bg-bg-base h-10 px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 [color-scheme:dark]"
+                  onChange={(value) => setTaskForm((current) => ({ ...current, dueDate: value }))}
+                  placeholder="No due date"
                 />
               </div>
               <div>

@@ -8,7 +8,7 @@ export interface SelectOption {
 }
 
 interface SelectProps {
-  label: string;
+  label?: string;
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
@@ -33,9 +33,11 @@ export const Select = ({ label, value, options, onChange }: SelectProps) => {
 
   return (
     <div className="relative" ref={containerRef}>
-      <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
-        {label}
-      </label>
+      {label ? (
+        <label className="mb-1.5 ml-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
+          {label}
+        </label>
+      ) : null}
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}

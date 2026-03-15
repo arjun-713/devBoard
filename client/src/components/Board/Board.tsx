@@ -22,6 +22,11 @@ interface BoardProps {
   onAddTask?: (columnId: string) => void;
   onTaskClick?: (task: Task) => void;
   onMoveTask?: (taskId: string, columnId: string, index: number) => void;
+  onEditTask?: (task: Task) => void;
+  onChangeTaskPriority?: (task: Task, priority: Task['priority']) => void;
+  onMoveTaskToColumn?: (task: Task, columnId: string) => void;
+  onAssignTask?: (task: Task) => void;
+  onDeleteTask?: (task: Task) => void;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -31,6 +36,11 @@ export const Board: React.FC<BoardProps> = ({
   onAddTask,
   onTaskClick,
   onMoveTask,
+  onEditTask,
+  onChangeTaskPriority,
+  onMoveTaskToColumn,
+  onAssignTask,
+  onDeleteTask,
 }) => {
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
   const sensors = useSensors(
@@ -94,7 +104,7 @@ export const Board: React.FC<BoardProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full items-start gap-5 overflow-x-auto pb-4 scrollbar-thin">
+      <div className="flex h-full items-start gap-6 overflow-x-auto pb-4 scrollbar-thin">
         {columns.map((columnName) => {
           const columnId = columnName.toLowerCase().replace(/\s+/g, '');
           const columnTasks = tasks
@@ -107,9 +117,15 @@ export const Board: React.FC<BoardProps> = ({
               id={columnId}
               title={columnName}
               tasks={columnTasks}
+              columns={columns}
               isLoading={isLoading}
               onAddTask={onAddTask}
               onTaskClick={onTaskClick}
+              onEditTask={onEditTask}
+              onChangeTaskPriority={onChangeTaskPriority}
+              onMoveTaskToColumn={onMoveTaskToColumn}
+              onAssignTask={onAssignTask}
+              onDeleteTask={onDeleteTask}
             />
           );
         })}
