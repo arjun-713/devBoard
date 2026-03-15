@@ -94,7 +94,7 @@ export const Board: React.FC<BoardProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 h-full items-start overflow-x-auto pb-4 scrollbar-thin">
+      <div className="flex h-full items-start gap-5 overflow-x-auto pb-4 scrollbar-thin">
         {columns.map((columnName) => {
           const columnId = columnName.toLowerCase().replace(/\s+/g, '');
           const columnTasks = tasks
@@ -114,7 +114,7 @@ export const Board: React.FC<BoardProps> = ({
           );
         })}
       </div>
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'ease-out' }}>
+      <DragOverlay dropAnimation={{ duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}>
         {activeTask ? <TaskCard task={activeTask} isDraggingOverlay /> : null}
       </DragOverlay>
     </DndContext>

@@ -4,6 +4,15 @@ import type { RootState, AppDispatch } from '@/store';
 import { setBoards, setActiveBoard } from '@/store/slices/boardSlice';
 import type { Board } from '@/store/slices/boardSlice';
 import client from '@/api/client';
+import {
+  createDemoId,
+  ensureDemoSeeded,
+  getDemoBoards,
+  getDemoTasks,
+  isDemoUser,
+  setDemoBoards,
+  setDemoTasks,
+} from '@/data/demoData';
 
 interface ApiBoard {
   _id: string;
@@ -24,11 +33,23 @@ const mapBoard = (board: ApiBoard): Board => ({
 export const useBoards = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { boards, activeBoardId, loading, error } = useSelector(selectBoardState);
+  const user = useSelector((state: RootState) => state.auth.user);
   const [isLoading, setIsLoading] = useState(true);
+  const inDemoMode = isDemoUser(user?.email);
 
   const fetchBoards = async () => {
     setIsLoading(true);
     try {
+      if (inDemoMode) {
+        ensureDemoSeeded();
+        const demoBoards = getDemoBoards();
+        dispatch(setBoards(demoBoards));
+        if (demoBoards.length > 0 && !activeBoardId) {
+          dispatch(setActiveBoard(demoBoards[0].id));
+        }
+        return;
+      }
+
       const { data } = await client.get<ApiBoard[]>('/boards');
       const transformedBoards = data.map(mapBoard);
 
@@ -45,6 +66,19 @@ export const useBoards = () => {
   };
 
   const createBoard = async (name: string) => {
+    if (inDemoMode) {
+      const newBoard: Board = {
+        id: createDemoId('demo-board'),
+        name,
+        columns: defaultColumns,
+      };
+      const updatedBoards = [...boards, newBoard];
+      setDemoBoards(updatedBoards);
+      dispatch(setBoards(updatedBoards));
+      dispatch(setActiveBoard(newBoard.id));
+      return newBoard;
+    }
+
     const { data } = await client.post<ApiBoard>('/boards', {
       name,
       columns: defaultColumns,
@@ -61,6 +95,16 @@ export const useBoards = () => {
       throw new Error('Board not found');
     }
 
+    if (inDemoMode) {
+      const updatedBoard: Board = { ...existingBoard, name };
+      const updatedBoards = boards.map((board) =>
+        board.id === updatedBoard.id ? updatedBoard : board
+      );
+      setDemoBoards(updatedBoards);
+      dispatch(setBoards(updatedBoards));
+      return updatedBoard;
+    }
+
     const { data } = await client.put<ApiBoard>(`/boards/${id}`, {
       name,
       columns: existingBoard.columns,
@@ -75,6 +119,22 @@ export const useBoards = () => {
   };
 
   const deleteBoard = async (id: string) => {
+    if (inDemoMode) {
+      const remainingBoards = boards.filter((board) => board.id !== id);
+      setDemoBoards(remainingBoards);
+      const remainingTasks = getDemoTasks().filter((task) => task.boardId !== id);
+      setDemoTasks(remainingTasks);
+      dispatch(setBoards(remainingBoards));
+      if (activeBoardId === id) {
+        if (remainingBoards.length > 0) {
+          dispatch(setActiveBoard(remainingBoards[0].id));
+        } else {
+          dispatch(setActiveBoard(null));
+        }
+      }
+      return;
+    }
+
     await client.delete(`/boards/${id}`);
     const remainingBoards = boards.filter((board) => board.id !== id);
     dispatch(setBoards(remainingBoards));
@@ -91,6 +151,16 @@ export const useBoards = () => {
     const loadBoards = async () => {
       setIsLoading(true);
       try {
+        if (inDemoMode) {
+          ensureDemoSeeded();
+          const demoBoards = getDemoBoards();
+          dispatch(setBoards(demoBoards));
+          if (demoBoards.length > 0 && !activeBoardId) {
+            dispatch(setActiveBoard(demoBoards[0].id));
+          }
+          return;
+        }
+
         const { data } = await client.get<ApiBoard[]>('/boards');
         const transformedBoards = data.map(mapBoard);
 
@@ -107,7 +177,7 @@ export const useBoards = () => {
     };
 
     void loadBoards();
-  }, [activeBoardId, dispatch]);
+  }, [activeBoardId, dispatch, inDemoMode]);
 
   return {
     boards,

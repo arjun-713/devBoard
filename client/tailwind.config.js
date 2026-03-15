@@ -7,7 +7,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['DM Sans', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -20,21 +20,21 @@ module.exports = {
           ivory: '#FFF8E1',
         },
         bg: {
-          base: '#0D0D0D',
-          surface: '#141414',
-          elevated: '#1C1C1C',
-          overlay: '#242424',
+          base: '#0F0F11',
+          surface: '#121214',
+          elevated: '#17171A',
+          overlay: '#1F1F23',
         },
         border: {
-          DEFAULT: '#2A2A2A',
-          subtle: '#1F1F1F',
-          strong: '#3A3A3A',
+          DEFAULT: '#2A2A2E',
+          subtle: '#1C1C20',
+          strong: '#34343A',
         },
         text: {
-          primary: '#F0EDE6',
-          secondary: '#888880',
-          muted: '#555550',
-          inverted: '#0D0D0D',
+          primary: '#E8E8EC',
+          secondary: '#A2A2AE',
+          muted: '#6D6D78',
+          inverted: '#0F0F11',
         }
       },
     },

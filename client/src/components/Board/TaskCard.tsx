@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Badge } from '../UI/Badge';
 import { MoreHorizontal, Calendar, GripVertical, User } from 'lucide-react';
 import type { Task } from '@/store/slices/taskSlice';
 
@@ -18,6 +17,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   isDraggingOverlay = false,
   isDoneColumn = false,
 }) => {
+  const tagTheme = (label: string) => {
+    const normalized = label.toLowerCase();
+    if (normalized === 'backend') return 'border-violet-400/30 bg-violet-500/15 text-violet-200';
+    if (normalized === 'docs') return 'border-blue-400/30 bg-blue-500/15 text-blue-200';
+    if (normalized === 'ux') return 'border-pink-400/30 bg-pink-500/15 text-pink-200';
+    if (normalized === 'frontend') return 'border-cyan-400/30 bg-cyan-500/15 text-cyan-200';
+    if (normalized === 'quality') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200';
+    return 'border-border-strong bg-bg-overlay text-text-secondary';
+  };
+
+  const priorityTheme: Record<Task['priority'], string> = {
+    high: 'border-red-500/30 bg-red-500/15 text-red-300',
+    medium: 'border-amber-500/30 bg-amber-500/15 text-amber-300',
+    low: 'border-blue-500/30 bg-blue-500/15 text-blue-300',
+  };
+
   const formattedDueDate = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : 'No date';
@@ -52,9 +67,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       ref={setNodeRef}
       style={style}
       onClick={onClick}
-      className="group bg-bg-surface border border-border rounded-lg p-3
-                 hover:border-border-strong hover:bg-bg-elevated transition-all duration-150 cursor-pointer
-                 touch-none"
+      className="group rounded-xl border border-[#2A2A2E] bg-[#18181B] p-3.5 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]
+                 transition-all duration-200 cursor-pointer touch-none
+                 hover:-translate-y-0.5 hover:border-[#3A3A40] hover:shadow-[0_12px_28px_rgba(0,0,0,0.35),0_1px_0_rgba(255,255,255,0.06)_inset]"
       data-dragging={isDragging}
       aria-disabled={isDoneColumn}
     >
@@ -71,7 +86,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           >
             <GripVertical size={13} />
           </button>
-          <span className="text-[13px] font-medium text-text-primary leading-snug truncate">
+          <span className="text-[15px] font-semibold text-text-primary leading-snug truncate">
             {task.title}
           </span>
         </div>
@@ -86,19 +101,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       </div>
       
       {task.description && (
-        <p className="text-[12px] text-text-secondary mt-1.5 leading-[1.4] line-clamp-2">
+        <p className="text-[13px] text-text-secondary mt-2 leading-[1.45] line-clamp-2">
           {task.description}
         </p>
       )}
 
       {task.labels && task.labels.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {task.labels.slice(0, 3).map((label) => (
             <span
               key={label}
-              className="rounded-md border border-border-strong bg-bg-elevated px-1.5 py-0.5 text-[10px] font-mono text-text-secondary"
+              className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition-all duration-200 hover:brightness-110 ${tagTheme(label)}`}
             >
-              #{label}
+              {label}
             </span>
           ))}
         </div>
@@ -109,11 +124,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           isDragging || isDraggingOverlay ? 'opacity-50 rotate-1 scale-[1.02]' : ''
         }`}
       >
-        <Badge variant={task.priority}>
+        <span
+          className={`rounded-full border px-2.5 py-0.5 text-[12px] font-medium transition-all duration-200 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)] ${priorityTheme[task.priority]}`}
+        >
           {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-        </Badge>
+        </span>
         
-        <div className={`flex items-center gap-2 text-[11px] font-mono text-text-muted ${isDoneColumn ? 'opacity-80' : ''}`}>
+        <div className={`flex items-center gap-2 text-[12px] font-mono text-text-muted ${isDoneColumn ? 'opacity-80' : ''}`}>
           <div className={`w-4 h-4 rounded-full bg-brand-blue-deep flex items-center justify-center overflow-hidden ${isDoneColumn ? 'grayscale' : ''}`}>
             {assigneeLabel === 'Unassigned' ? (
               <User size={10} className="text-white" />

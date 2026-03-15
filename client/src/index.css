@@ -1,23 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-bg-base:       #0D0D0D;
-  --color-bg-surface:    #141414;
-  --color-bg-elevated:   #1C1C1C;
-  --color-bg-overlay:    #242424;
+  --color-bg-base:       #0F0F11;
+  --color-bg-surface:    #121214;
+  --color-bg-elevated:   #17171A;
+  --color-bg-overlay:    #1F1F23;
 
-  --color-border:        #2A2A2A;
-  --color-border-subtle: #1F1F1F;
-  --color-border-strong: #3A3A3A;
+  --color-border:        #2A2A2E;
+  --color-border-subtle: #1C1C20;
+  --color-border-strong: #34343A;
 
-  --color-text-primary:   #F0EDE6;
-  --color-text-secondary: #888880;
-  --color-text-muted:     #555550;
-  --color-text-inverted:  #0D0D0D;
+  --color-text-primary:   #E8E8EC;
+  --color-text-secondary: #A2A2AE;
+  --color-text-muted:     #6D6D78;
+  --color-text-inverted:  #0F0F11;
 }
 
 @layer base {
@@ -38,12 +38,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #2A2A2A;
+    background: #2A2A2E;
     border-radius: 2px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #3A3A3A;
+    background: #34343A;
   }
 }
 

@@ -15,6 +15,15 @@ import {
   Pencil,
   Trash2,
   X,
+  ChevronDown,
+  SlidersHorizontal,
+  ArrowUpRight,
+  ArrowDownRight,
+  Gauge,
+  Clock3,
+  AlertTriangle,
+  CircleCheckBig,
+  Command,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBoards } from '@/hooks/useBoards';
@@ -34,6 +43,8 @@ type WorkspaceView = 'boards' | 'search' | 'inbox';
 type SearchScope = 'all' | 'boards' | 'tasks';
 type InboxFilter = 'all' | 'overdue' | 'today' | 'upcoming';
 type Priority = Task['priority'];
+type BoardPriorityFilter = 'all' | Priority;
+type BoardSort = 'manual' | 'priority' | 'due';
 
 interface TaskFormState {
   title: string;
@@ -135,6 +146,9 @@ export const DashboardPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState<SearchScope>('all');
   const [inboxFilter, setInboxFilter] = useState<InboxFilter>('all');
+  const [boardPriorityFilter, setBoardPriorityFilter] = useState<BoardPriorityFilter>('all');
+  const [boardSort, setBoardSort] = useState<BoardSort>('manual');
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [boardName, setBoardName] = useState('');
   const [boardEditName, setBoardEditName] = useState('');
   const [taskForm, setTaskForm] = useState<TaskFormState>(defaultTaskForm());
@@ -167,10 +181,53 @@ export const DashboardPage: React.FC = () => {
     document.title = 'DevBoard';
   }, [activeBoard?.name, workspaceView]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsCommandPaletteOpen((current) => !current);
+      }
+      if (event.key === 'Escape') {
+        setIsCommandPaletteOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const sortedTasks = useMemo(
     () => [...tasks].sort((firstTask, secondTask) => firstTask.order - secondTask.order),
     [tasks]
   );
+
+  const boardTasks = useMemo(() => {
+    const filtered =
+      boardPriorityFilter === 'all'
+        ? sortedTasks
+        : sortedTasks.filter((task) => task.priority === boardPriorityFilter);
+
+    if (boardSort === 'priority') {
+      const priorityWeight: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+      return [...filtered].sort((firstTask, secondTask) => {
+        const firstPriority = priorityWeight[firstTask.priority];
+        const secondPriority = priorityWeight[secondTask.priority];
+        return firstPriority === secondPriority
+          ? firstTask.order - secondTask.order
+          : firstPriority - secondPriority;
+      });
+    }
+
+    if (boardSort === 'due') {
+      return [...filtered].sort((firstTask, secondTask) => {
+        const firstDue = firstTask.dueDate ? new Date(firstTask.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        const secondDue = secondTask.dueDate ? new Date(secondTask.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        return firstDue === secondDue ? firstTask.order - secondTask.order : firstDue - secondDue;
+      });
+    }
+
+    return filtered;
+  }, [boardPriorityFilter, boardSort, sortedTasks]);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const normalizedSearchQuery = debouncedSearchQuery.trim().toLowerCase();
@@ -697,8 +754,8 @@ export const DashboardPage: React.FC = () => {
             <span>Priority</span>
             <span>Action</span>
           </div>
-          {sortedTasks.length > 0 ? (
-            sortedTasks.map((task) => (
+          {boardTasks.length > 0 ? (
+            boardTasks.map((task) => (
               <div
                 key={task.id}
                 className="grid grid-cols-[minmax(0,2fr)_120px_140px_120px] gap-3 border-b border-border-subtle px-4 py-3 text-[12px] text-text-primary last:border-b-0"
@@ -752,55 +809,150 @@ export const DashboardPage: React.FC = () => {
     return (
       <ErrorBoundary>
       <div className="flex h-full flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-bg-surface p-3 sm:grid-cols-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">Total Tasks</p>
-            <p className="text-[20px] font-semibold text-[#F0EDE6]">{boardStats.total}</p>
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">In Progress</p>
-            <p className="text-[20px] font-semibold text-[#FF9E00]">{boardStats.inProgress}</p>
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">Overdue</p>
-            <p className="text-[20px] font-semibold text-[#FF6D00]">{boardStats.overdue}</p>
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.08em] text-text-muted">Completion Rate</p>
-            <p className="text-[20px] font-semibold text-[#00B4D8]">{boardStats.completionRate}%</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            {
+              label: 'Total Tasks',
+              value: boardStats.total,
+              trend: '+8%',
+              icon: Gauge,
+              valueClass: 'text-text-primary',
+              trendClass: 'text-emerald-300',
+            },
+            {
+              label: 'In Progress',
+              value: boardStats.inProgress,
+              trend: '+4%',
+              icon: Clock3,
+              valueClass: 'text-[#FFB347]',
+              trendClass: 'text-emerald-300',
+            },
+            {
+              label: 'Overdue',
+              value: boardStats.overdue,
+              trend: '-3%',
+              icon: AlertTriangle,
+              valueClass: 'text-[#FF6D5E]',
+              trendClass: 'text-red-300',
+            },
+            {
+              label: 'Completion Rate',
+              value: `${boardStats.completionRate}%`,
+              trend: '+6%',
+              icon: CircleCheckBig,
+              valueClass: 'text-[#5ED3FF]',
+              trendClass: 'text-emerald-300',
+            },
+          ].map((metric) => (
+            <div
+              key={metric.label}
+              className="rounded-[14px] border border-[#2A2A2E] bg-gradient-to-b from-[#18181C] to-[#131316] p-3.5 shadow-[0_12px_28px_rgba(0,0,0,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#3B3B44]"
+            >
+              <div className="flex items-start justify-between">
+                <metric.icon size={15} className="text-text-secondary" />
+                <span className={`inline-flex items-center gap-1 text-[11px] ${metric.trendClass}`}>
+                  {metric.trend.startsWith('-') ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
+                  {metric.trend}
+                </span>
+              </div>
+              <p className="mt-3 text-[11px] uppercase tracking-[0.08em] text-text-muted">{metric.label}</p>
+              <p className={`mt-1 text-[22px] font-semibold tracking-tight ${metric.valueClass}`}>{metric.value}</p>
+            </div>
+          ))}
         </div>
-        <Board
-          columns={activeBoard.columns}
-          tasks={sortedTasks}
-          isLoading={isTasksLoading}
-          onAddTask={openCreateTaskModal}
-          onTaskClick={openEditTaskModal}
-          onMoveTask={moveTask}
-        />
+
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-bg-surface/80 px-3 py-2.5">
+          <div className="flex items-center gap-2 text-[12px] text-text-secondary">
+            <SlidersHorizontal size={13} />
+            <span>Filter</span>
+          </div>
+          <select
+            value={boardPriorityFilter}
+            onChange={(event) => setBoardPriorityFilter(event.target.value as BoardPriorityFilter)}
+            className="h-8 rounded-md border border-border bg-bg-base px-2.5 text-[12px] text-text-primary outline-none"
+          >
+            <option value="all">All priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select
+            value={boardSort}
+            onChange={(event) => setBoardSort(event.target.value as BoardSort)}
+            className="h-8 rounded-md border border-border bg-bg-base px-2.5 text-[12px] text-text-primary outline-none"
+          >
+            <option value="manual">Sort: Manual</option>
+            <option value="priority">Sort: Priority</option>
+            <option value="due">Sort: Due date</option>
+          </select>
+          <span className="ml-auto rounded-md border border-border bg-bg-base px-2 py-1 text-[11px] text-text-muted">
+            <Command size={11} className="mr-1 inline" />
+            Cmd/Ctrl + K
+          </span>
+        </div>
+
+        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <Board
+            columns={activeBoard.columns}
+            tasks={sortedTasks}
+            isLoading={isTasksLoading}
+            onAddTask={openCreateTaskModal}
+            onTaskClick={openEditTaskModal}
+            onMoveTask={moveTask}
+          />
+          <aside className="hidden xl:block rounded-xl border border-border bg-bg-surface/80 p-3">
+            <h3 className="text-[11px] uppercase tracking-[0.08em] text-text-secondary">Activity feed</h3>
+            <div className="mt-3 space-y-2">
+              {boardTasks.slice(0, 5).map((task) => (
+                <div key={task.id} className="rounded-lg border border-border-subtle bg-bg-base px-2.5 py-2">
+                  <p className="truncate text-[12px] font-medium text-text-primary">{task.title}</p>
+                  <p className="mt-1 text-[11px] text-text-muted">
+                    {task.assigneeName?.trim() || 'Unassigned'} · {formatPriority(task.priority)}
+                  </p>
+                </div>
+              ))}
+              {boardTasks.length === 0 ? (
+                <p className="text-[12px] text-text-muted">No activity yet.</p>
+              ) : null}
+            </div>
+          </aside>
+        </div>
       </div>
       </ErrorBoundary>
     );
   };
 
   const sidebarButtonClass = (isActive: boolean) =>
-    `w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] transition-all ${
+    `w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] transition-all ${
       isActive
-        ? 'bg-bg-elevated text-text-primary font-medium border border-border'
-        : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated'
+        ? 'bg-bg-elevated text-text-primary font-medium border border-border shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]'
+        : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated hover:shadow-[0_0_22px_rgba(0,180,216,0.08)]'
     }`;
 
   return (
     <div className="min-h-screen bg-bg-base flex overflow-hidden">
-      <aside className="w-[220px] border-r border-border bg-bg-surface flex flex-col shrink-0">
-        <div className="h-[52px] flex items-center px-4 border-b border-border">
+      <aside className="w-[260px] border-r border-border bg-bg-surface flex flex-col shrink-0">
+        <div className="h-[58px] flex items-center px-4 border-b border-border">
           <div className="w-7 h-7 bg-brand-orange flex items-center justify-center rounded-lg mr-2 shrink-0">
             <Layers className="text-bg-base w-4 h-4" />
           </div>
           <span className="font-semibold text-text-primary tracking-tight">DevBoard</span>
         </div>
 
-        <div className="p-3 flex-1 space-y-6 overflow-y-auto">
+        <div className="p-4 flex-1 space-y-8 overflow-y-auto">
+          <div>
+            <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-text-muted mb-2 px-2">
+              Workspace
+            </div>
+            <button
+              type="button"
+              className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-bg-base px-3 text-[12px] text-text-primary transition-all hover:border-border-strong"
+            >
+              <span>Acme Product Team</span>
+              <ChevronDown size={14} className="text-text-muted" />
+            </button>
+          </div>
+
           <div>
             <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-text-muted mb-2 px-2">
               Workspace
@@ -820,7 +972,7 @@ export const DashboardPage: React.FC = () => {
                 className={sidebarButtonClass(workspaceView === 'inbox')}
                 onClick={() => setWorkspaceView('inbox')}
               >
-                <Bell size={14} className="text-text-muted" />
+                <Bell size={14} className="text-[#FF9E00]" />
                 <span>Inbox</span>
                 <span className="ml-auto rounded-full bg-brand-orange/10 px-1.5 py-0.5 text-[10px] text-brand-orange">
                   {inboxTotal}
@@ -864,10 +1016,10 @@ export const DashboardPage: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`w-1.5 h-1.5 rounded-full ${
+                    className={`w-2 h-2 rounded-full ${
                       workspaceView === 'boards' && activeBoardId === board.id
                         ? 'bg-brand-orange'
-                        : 'bg-text-muted'
+                        : 'bg-brand-cyan/70'
                     }`}
                   />
                   <span className="truncate">{board.name}</span>
@@ -913,10 +1065,30 @@ export const DashboardPage: React.FC = () => {
               Exit
             </Button>
           </div>
+          <div className="mt-3 px-1 text-[10px] leading-relaxed text-text-muted">
+            <span>Made by </span>
+            <a
+              href="https://github.com/arjun-713"
+              target="_blank"
+              rel="noreferrer"
+              className="text-text-secondary transition-colors hover:text-text-primary"
+            >
+              github.com/arjun-713
+            </a>
+            <span> • </span>
+            <a
+              href="https://github.com/arjun-713/devBoard"
+              target="_blank"
+              rel="noreferrer"
+              className="text-text-secondary transition-colors hover:text-text-primary"
+            >
+              Repo
+            </a>
+          </div>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col bg-bg-base relative min-w-0">
+      <main className="flex-1 flex flex-col bg-[#0F0F11] relative min-w-0">
         {showDemoBanner ? (
           <div className="mx-6 mt-4 flex items-center justify-between rounded-md border border-[#FF9E00]/40 bg-[#FF9E00]/12 px-3 py-2 text-[12px] text-[#FFF8E1]">
             <span>You're viewing the demo account</span>
@@ -930,9 +1102,9 @@ export const DashboardPage: React.FC = () => {
             </button>
           </div>
         ) : null}
-        <header className="h-[52px] border-b border-border flex items-center justify-between px-6 bg-bg-base/80 backdrop-blur-xl sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-[14px] font-semibold text-text-primary tracking-tight">
+        <header className="h-[64px] border-b border-border flex items-center justify-between px-6 bg-bg-base/85 backdrop-blur-xl sticky top-0 z-20">
+          <div className="flex items-center gap-4">
+            <h2 className="text-[22px] font-semibold text-text-primary tracking-tight">
               {workspaceView === 'search'
                 ? 'Search'
                 : workspaceView === 'inbox'
@@ -942,8 +1114,8 @@ export const DashboardPage: React.FC = () => {
                     : 'Select a board'}
             </h2>
             {(workspaceView === 'boards' && activeBoard) || workspaceView === 'inbox' ? (
-              <div className="flex items-center bg-bg-surface border border-border rounded-md px-1.5 py-0.5 gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan" />
+              <div className="flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 shadow-[0_0_16px_rgba(0,180,216,0.2)]">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan shadow-[0_0_10px_rgba(0,180,216,0.7)]" />
                 <span className="text-[10px] font-medium text-text-secondary uppercase tracking-widest">
                   {workspaceView === 'inbox' ? 'Priority Queue' : 'Active'}
                 </span>
@@ -951,6 +1123,33 @@ export const DashboardPage: React.FC = () => {
             ) : null}
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-2 rounded-lg border border-border bg-bg-surface px-3 md:flex">
+              <Search size={14} className="text-text-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search tasks, boards, people..."
+                className="h-9 w-[230px] bg-transparent text-[12px] text-text-primary outline-none placeholder:text-text-muted"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="hidden rounded-md border border-border bg-bg-surface px-2 py-1 text-[11px] text-text-muted transition-all hover:text-text-primary md:block"
+            >
+              <Command size={11} className="mr-1 inline" />
+              K
+            </button>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-bg-surface text-text-secondary transition-all hover:text-text-primary"
+            >
+              <Bell size={14} />
+            </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-blue bg-brand-blue-deep text-[12px] font-semibold text-white">
+              {user?.name?.charAt(0) || 'U'}
+            </div>
             <div className="flex items-center bg-bg-surface border border-border rounded-lg p-0.5 mr-2">
               <button
                 type="button"
@@ -1012,6 +1211,53 @@ export const DashboardPage: React.FC = () => {
               {toast.message}
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {isCommandPaletteOpen ? (
+        <div
+          className="fixed inset-0 z-[65] flex items-start justify-center bg-black/55 px-4 pt-[12vh] backdrop-blur-sm"
+          onClick={() => setIsCommandPaletteOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-xl rounded-xl border border-border bg-bg-surface shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-label="Command palette"
+          >
+            <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+              <Search size={14} className="text-text-muted" />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Type a command or search..."
+                className="h-8 w-full bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted"
+              />
+              <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-text-muted">ESC</span>
+            </div>
+            <div className="p-2">
+              {[
+                { label: 'Open Search', action: () => setWorkspaceView('search') },
+                { label: 'Open Inbox', action: () => setWorkspaceView('inbox') },
+                { label: 'New Task', action: () => openCreateTaskModal() },
+                { label: 'New Board', action: () => openCreateBoardModal() },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    item.action();
+                    setIsCommandPaletteOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] text-text-secondary transition-all hover:bg-bg-elevated hover:text-text-primary"
+                >
+                  <span>{item.label}</span>
+                  <Command size={12} className="text-text-muted" />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -1146,7 +1392,7 @@ export const DashboardPage: React.FC = () => {
                   value={taskForm.assigneeName}
                   onChange={(event) => setTaskForm((current) => ({ ...current, assigneeName: event.target.value }))}
                   className="w-full rounded-lg border border-border bg-bg-base h-10 px-3 text-[13px] text-text-primary outline-none transition-all focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50"
-                  placeholder="Arjun"
+                  placeholder="Enter your name"
                 />
               </div>
             </div>

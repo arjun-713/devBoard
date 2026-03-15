@@ -39,25 +39,25 @@ export const Column: React.FC<ColumnProps> = ({
   const isInProgressColumn = id === 'inprogress';
 
   return (
-    <div className="w-[280px] min-w-[280px] flex flex-col h-full">
+    <div className="group w-[300px] min-w-[300px] flex flex-col h-full">
       {/* Column Header */}
-      <div className="flex items-center justify-between px-1 mb-3">
+      <div className="mb-3 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <span 
-            className="w-1.5 h-1.5 rounded-full" 
+            className="h-2 w-2 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.28)]" 
             style={{ backgroundColor: statusColors[title] || '#555550' }} 
           />
           <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-text-secondary">
             {title}
           </span>
-          <span className="text-[11px] text-text-muted font-mono bg-bg-surface px-1.5 py-0.5 rounded ml-1">
+          <span className="ml-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-text-muted font-mono">
             {tasks.length}
           </span>
         </div>
         
         <button 
           onClick={() => onAddTask?.(id)}
-          className="text-text-muted hover:text-text-primary transition-colors p-1"
+          className="rounded-md p-1 text-text-muted opacity-0 transition-all duration-200 hover:bg-bg-overlay hover:text-text-primary group-hover:opacity-100"
         >
           <Plus size={14} />
         </button>
@@ -66,14 +66,14 @@ export const Column: React.FC<ColumnProps> = ({
       {/* Task List */}
       <div
         ref={setNodeRef}
-        className={`flex-1 min-h-[150px] rounded-xl border border-transparent transition-all duration-150 ${
+        className={`flex-1 min-h-[150px] rounded-2xl border border-transparent p-1.5 transition-all duration-200 ${
           isOver
-            ? `bg-bg-elevated/40 ${isInProgressColumn ? 'border-[#FF9E00]/20' : 'border-border-strong'}`
+            ? `bg-bg-elevated/50 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset] ${isInProgressColumn ? 'border-[#FF9E00]/40' : 'border-border-strong'}`
             : ''
         }`}
       >
         <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex h-full flex-col gap-2 overflow-y-auto pr-1">
+          <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
             {isLoading
               ? Array.from({ length: 3 }).map((_, index) => (
                   <div

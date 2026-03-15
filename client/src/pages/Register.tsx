@@ -36,7 +36,7 @@ export const RegisterPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-bg-base border border-border rounded-lg h-10 px-3 text-[13px] text-text-primary focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 outline-none transition-all"
-              placeholder="Arjun Dev"
+              placeholder="Enter your name"
               required
             />
           </div>

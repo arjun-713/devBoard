@@ -5,6 +5,7 @@ import { setCredentials, logout as logoutAction, setLoading, setError } from '@/
 import client from '@/api/client';
 import { useUIStore } from '@/store/zustand/uiStore';
 import { useNavigate } from 'react-router-dom';
+import { DEMO_ACCESS_TOKEN, DEMO_USER, ensureDemoSeeded, isDemoUser } from '@/data/demoData';
 
 interface AuthErrorResponse {
   message?: string;
@@ -54,9 +55,9 @@ export const useAuth = () => {
   const loginDemo = async () => {
     dispatch(setError(null));
     try {
-      const { data } = await client.get('/auth/demo');
-      dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
-      localStorage.setItem('refreshToken', data.refreshToken);
+      ensureDemoSeeded();
+      dispatch(setCredentials({ user: DEMO_USER, accessToken: DEMO_ACCESS_TOKEN }));
+      localStorage.removeItem('refreshToken');
       useUIStore.getState().resetDemoBanner();
       navigate('/dashboard');
     } catch (err) {
@@ -67,8 +68,10 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      await client.post('/auth/logout', { refreshToken });
+      if (!isDemoUser(user?.email)) {
+        const refreshToken = localStorage.getItem('refreshToken');
+        await client.post('/auth/logout', { refreshToken });
+      }
     } catch (err) {
       console.error('Logout error', err);
     } finally {

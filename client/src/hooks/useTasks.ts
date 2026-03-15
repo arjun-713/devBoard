@@ -5,6 +5,13 @@ import { setTasks, moveTask as moveTaskAction } from '@/store/slices/taskSlice';
 import type { Task } from '@/store/slices/taskSlice';
 import { addTask as addTaskAction, updateTask as updateTaskAction, deleteTask as deleteTaskAction } from '@/store/slices/taskSlice';
 import client from '@/api/client';
+import {
+  createDemoId,
+  ensureDemoSeeded,
+  getDemoTasks,
+  isDemoUser,
+  setDemoTasks,
+} from '@/data/demoData';
 
 interface ApiTask extends Omit<Task, 'id'> {
   _id: string;
@@ -121,13 +128,31 @@ const reorderTasks = (
 export const useTasks = (boardId: string | null) => {
   const dispatch = useDispatch<AppDispatch>();
   const tasks = useSelector((state: RootState) => state.tasks.tasks);
+  const user = useSelector((state: RootState) => state.auth.user);
   const [isLoading, setIsLoading] = useState(false);
+  const inDemoMode = isDemoUser(user?.email);
+
+  const persistDemoBoardTasks = (nextBoardTasks: Task[]) => {
+    if (!boardId) return;
+    const existingTasks = getDemoTasks();
+    const otherBoardTasks = existingTasks.filter((task) => task.boardId !== boardId);
+    setDemoTasks([...otherBoardTasks, ...nextBoardTasks]);
+  };
 
   const fetchTasks = async () => {
     if (!boardId) return;
     setIsLoading(true);
 
     try {
+      if (inDemoMode) {
+        ensureDemoSeeded();
+        const demoTasks = getDemoTasks()
+          .filter((task) => task.boardId === boardId)
+          .sort((firstTask, secondTask) => firstTask.order - secondTask.order);
+        dispatch(setTasks(demoTasks));
+        return;
+      }
+
       const { data } = await client.get<ApiTask[]>(`/tasks?boardId=${boardId}`);
       dispatch(setTasks(data.map(mapTask)));
     } catch (err) {
@@ -138,6 +163,26 @@ export const useTasks = (boardId: string | null) => {
   };
 
   const createTask = async (input: CreateTaskInput) => {
+    if (inDemoMode) {
+      const createdTask: Task = {
+        id: createDemoId('demo-task'),
+        title: input.title,
+        description: input.description,
+        priority: input.priority,
+        dueDate: input.dueDate ?? null,
+        assigneeName: input.assigneeName,
+        labels: input.labels ?? [],
+        boardId: input.boardId,
+        columnId: input.columnId,
+        order: input.order,
+        status: columnToStatus(input.columnId),
+      };
+      const nextBoardTasks = [...tasks, createdTask];
+      dispatch(addTaskAction(createdTask));
+      persistDemoBoardTasks(nextBoardTasks);
+      return createdTask;
+    }
+
     const { data } = await client.post<ApiTask>('/tasks', {
       ...input,
       status: columnToStatus(input.columnId),
@@ -148,6 +193,27 @@ export const useTasks = (boardId: string | null) => {
   };
 
   const updateTask = async (input: UpdateTaskInput) => {
+    if (inDemoMode) {
+      const existingTask = tasks.find((task) => task.id === input.id);
+      if (!existingTask) {
+        throw new Error('Task not found');
+      }
+
+      const updatedTask: Task = {
+        ...existingTask,
+        ...input,
+        status: columnToStatus(input.columnId),
+        dueDate: input.dueDate ?? null,
+      };
+
+      const updatedBoardTasks = tasks.map((task) =>
+        task.id === updatedTask.id ? updatedTask : task
+      );
+      dispatch(updateTaskAction(updatedTask));
+      persistDemoBoardTasks(updatedBoardTasks);
+      return updatedTask;
+    }
+
     const { id, ...rest } = input;
     const { data } = await client.patch<ApiTask>(`/tasks/${id}`, {
       ...rest,
@@ -159,6 +225,13 @@ export const useTasks = (boardId: string | null) => {
   };
 
   const deleteTask = async (id: string) => {
+    if (inDemoMode) {
+      const remainingTasks = tasks.filter((task) => task.id !== id);
+      dispatch(deleteTaskAction(id));
+      persistDemoBoardTasks(remainingTasks);
+      return;
+    }
+
     await client.delete(`/tasks/${id}`);
     dispatch(deleteTaskAction(id));
   };
@@ -172,6 +245,11 @@ export const useTasks = (boardId: string | null) => {
     const previousTasks = tasks;
     const reorderedTasks = reorderTasks(tasks, taskId, columnId, order);
     dispatch(moveTaskAction(reorderedTasks));
+
+    if (inDemoMode) {
+      persistDemoBoardTasks(reorderedTasks);
+      return;
+    }
 
     try {
       await client.patch(`/tasks/${taskId}/move`, {
@@ -192,6 +270,15 @@ export const useTasks = (boardId: string | null) => {
       setIsLoading(true);
 
       try {
+        if (inDemoMode) {
+          ensureDemoSeeded();
+          const demoTasks = getDemoTasks()
+            .filter((task) => task.boardId === boardId)
+            .sort((firstTask, secondTask) => firstTask.order - secondTask.order);
+          dispatch(setTasks(demoTasks));
+          return;
+        }
+
         const { data } = await client.get<ApiTask[]>(`/tasks?boardId=${boardId}`);
         dispatch(setTasks(data.map(mapTask)));
       } catch (err) {
@@ -206,7 +293,7 @@ export const useTasks = (boardId: string | null) => {
     } else {
       setIsLoading(false);
     }
-  }, [boardId, dispatch]);
+  }, [boardId, dispatch, inDemoMode]);
 
   return { tasks, isLoading, fetchTasks, createTask, updateTask, deleteTask, moveTask };
 };
