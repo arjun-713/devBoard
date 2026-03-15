@@ -5,6 +5,10 @@ export interface AuthRequest extends Request {
   user?: { id: string };
 }
 
+/**
+ * Validates bearer access tokens and attaches the decoded user id to `req.user`.
+ * Returns 401 for invalid tokens and 403 for expired tokens.
+ */
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {

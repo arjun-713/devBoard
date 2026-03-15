@@ -51,6 +51,10 @@ const taskSlice = createSlice({
     deleteTask: (state, action: PayloadAction<string>) => {
       state.tasks = state.tasks.filter((t) => t.id !== action.payload);
     },
+    /**
+     * Applies the optimistic ordering payload produced by the move-task flow.
+     * This is the reducer target for the moveTask thunk-style update sequence.
+     */
     moveTask: (state, action: PayloadAction<Task[]>) => {
       state.tasks = action.payload;
     },

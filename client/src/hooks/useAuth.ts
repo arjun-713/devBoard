@@ -10,6 +10,10 @@ interface AuthErrorResponse {
   message?: string;
 }
 
+/**
+ * Centralized auth hook for login/register/logout and auth session state.
+ * Keeps Redux auth state and token persistence synchronized with API auth flows.
+ */
 export const useAuth = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();

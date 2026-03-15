@@ -114,6 +114,10 @@ const reorderTasks = (
     );
 };
 
+/**
+ * Task data hook for board-scoped CRUD and optimistic drag-and-drop moves.
+ * Orchestrates API calls while keeping Redux task state in sync.
+ */
 export const useTasks = (boardId: string | null) => {
   const dispatch = useDispatch<AppDispatch>();
   const tasks = useSelector((state: RootState) => state.tasks.tasks);
