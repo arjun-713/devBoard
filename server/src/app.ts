@@ -26,7 +26,9 @@ app.use(cors({
 
     callback(new Error('Origin not allowed by CORS'));
   },
+  credentials: true,
 }));
+app.options('*', cors());
 app.use(express.json());
 
 // Routes
