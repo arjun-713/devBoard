@@ -2,7 +2,7 @@
 
 Developer-focused Kanban workspace for planning, shipping, and tracking engineering work.
 
-[Live Demo](https://devboard.vercel.app)
+[Live Demo](https://dev-board-henna.vercel.app)
 
 ![DevBoard](./docs/screenshot.png)
 
