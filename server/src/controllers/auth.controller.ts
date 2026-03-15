@@ -3,6 +3,12 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/tokens';
 
+const buildAuthResponse = (user: { id: string; email: string; name: string }, accessToken: string, refreshToken: string) => ({
+  user: { id: user.id, email: user.email, name: user.name },
+  accessToken,
+  refreshToken,
+});
+
 export const register = async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
 
@@ -21,11 +27,7 @@ export const register = async (req: Request, res: Response) => {
 
     const accessToken = generateAccessToken(user.id);
 
-    res.status(201).json({
-      user: { id: user.id, email: user.email, name: user.name },
-      accessToken,
-      refreshToken
-    });
+    res.status(201).json(buildAuthResponse(user, accessToken, refreshToken));
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -51,11 +53,31 @@ export const login = async (req: Request, res: Response) => {
     user.refreshTokens.push(refreshToken);
     await user.save();
 
-    res.json({
-      user: { id: user.id, email: user.email, name: user.name },
-      accessToken,
-      refreshToken
-    });
+    res.json(buildAuthResponse(user, accessToken, refreshToken));
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const demoLogin = async (_req: Request, res: Response) => {
+  try {
+    const user = await User.findOne({ email: 'demo@devboard.app' });
+    if (!user) {
+      return res.status(404).json({ message: 'Demo user not found. Run npm run seed:demo on the server.' });
+    }
+
+    const isMatch = await bcrypt.compare('demo1234', user.passwordHash);
+    if (!isMatch) {
+      return res.status(500).json({ message: 'Demo account credentials are invalid. Re-run npm run seed:demo.' });
+    }
+
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    user.refreshTokens.push(refreshToken);
+    await user.save();
+
+    res.json(buildAuthResponse(user, accessToken, refreshToken));
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

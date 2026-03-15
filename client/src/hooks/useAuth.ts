@@ -3,6 +3,7 @@ import type { AxiosError } from 'axios';
 import type { RootState, AppDispatch } from '@/store';
 import { setCredentials, logout as logoutAction, setLoading, setError } from '@/store/slices/authSlice';
 import client from '@/api/client';
+import { useUIStore } from '@/store/zustand/uiStore';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthErrorResponse {
@@ -46,6 +47,20 @@ export const useAuth = () => {
     }
   };
 
+  const loginDemo = async () => {
+    dispatch(setError(null));
+    try {
+      const { data } = await client.get('/auth/demo');
+      dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
+      localStorage.setItem('refreshToken', data.refreshToken);
+      useUIStore.getState().resetDemoBanner();
+      navigate('/dashboard');
+    } catch (err) {
+      const error = err as AxiosError<AuthErrorResponse>;
+      dispatch(setError(error.response?.data?.message ?? 'Demo login failed'));
+    }
+  };
+
   const logout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
@@ -66,6 +81,7 @@ export const useAuth = () => {
     loading,
     error,
     login,
+    loginDemo,
     register,
     logout
   };

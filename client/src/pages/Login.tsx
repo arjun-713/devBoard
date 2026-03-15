@@ -7,11 +7,18 @@ import { Layout } from 'lucide-react';
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading, error } = useAuth();
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const { login, loginDemo, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login({ email, password });
+  };
+
+  const handleDemoLogin = async () => {
+    setIsDemoLoading(true);
+    await loginDemo();
+    setIsDemoLoading(false);
   };
 
   return (
@@ -64,6 +71,16 @@ export const LoginPage: React.FC = () => {
             Sign in
           </Button>
         </form>
+
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full mt-3"
+          isLoading={isDemoLoading}
+          onClick={handleDemoLogin}
+        >
+          Try Demo →
+        </Button>
 
         <p className="text-center mt-6 text-text-secondary text-[13px]">
           Don't have an account?{' '}

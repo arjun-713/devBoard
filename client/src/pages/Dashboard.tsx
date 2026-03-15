@@ -14,6 +14,7 @@ import {
   FolderKanban,
   Pencil,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBoards } from '@/hooks/useBoards';
@@ -118,7 +119,16 @@ export const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
   const { boards, activeBoardId, setActiveBoard, createBoard, updateBoard, deleteBoard, isLoading: isBoardsLoading } = useBoards();
   const { tasks, isLoading: isTasksLoading, createTask, updateTask, deleteTask, moveTask } = useTasks(activeBoardId);
-  const { activeModal, openModal, closeModal, toasts, addToast, removeToast } = useUIStore();
+  const {
+    activeModal,
+    openModal,
+    closeModal,
+    toasts,
+    addToast,
+    removeToast,
+    isDemoBannerDismissed,
+    dismissDemoBanner,
+  } = useUIStore();
 
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('boards');
   const [viewMode, setViewMode] = useState<ViewMode>('board');
@@ -136,6 +146,7 @@ export const DashboardPage: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const activeBoard = boards.find((board) => board.id === activeBoardId) ?? null;
+  const showDemoBanner = user?.email === 'demo@devboard.app' && !isDemoBannerDismissed;
 
   useEffect(() => {
     if (activeBoard?.name) {
@@ -906,6 +917,19 @@ export const DashboardPage: React.FC = () => {
       </aside>
 
       <main className="flex-1 flex flex-col bg-bg-base relative min-w-0">
+        {showDemoBanner ? (
+          <div className="mx-6 mt-4 flex items-center justify-between rounded-md border border-[#FF9E00]/40 bg-[#FF9E00]/12 px-3 py-2 text-[12px] text-[#FFF8E1]">
+            <span>You're viewing the demo account</span>
+            <button
+              type="button"
+              onClick={dismissDemoBanner}
+              className="rounded p-0.5 text-[#FFF8E1]/80 transition-colors hover:text-[#FFF8E1]"
+              aria-label="Dismiss demo banner"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : null}
         <header className="h-[52px] border-b border-border flex items-center justify-between px-6 bg-bg-base/80 backdrop-blur-xl sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <h2 className="text-[14px] font-semibold text-text-primary tracking-tight">

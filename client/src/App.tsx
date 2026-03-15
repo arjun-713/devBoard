@@ -34,6 +34,7 @@ function App() {
         {/* Protected Routes */}
         <Route element={<PrivateRoute />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
