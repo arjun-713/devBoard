@@ -169,7 +169,10 @@ const columnToStatus = (columnId: SeedTask['columnId']) => {
 };
 
 const seedDemo = async () => {
-  const mongoUri = process.env.MONGO_URI ?? 'mongodb://localhost:27017/devboard';
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    throw new Error('MONGO_URI is required');
+  }
   await mongoose.connect(mongoUri);
 
   const passwordHash = await bcrypt.hash('demo1234', 12);

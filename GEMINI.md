@@ -75,14 +75,14 @@ See `.agents/skills/devboard-ui/SKILL.md` for full token system, color palette, 
 ## Environment Variables
 ```
 # client/.env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=<server_api_base>/api
 
 # server/.env
 PORT=5000
 MONGO_URI=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=<client_origin>
 ```
 
 ## GitHub Actions Pipeline

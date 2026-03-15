@@ -3,7 +3,7 @@ import { store } from '@/store';
 import { logout, setCredentials } from '@/store/slices/authSlice';
 import { useUIStore } from '@/store/zustand/uiStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 const client = axios.create({
   baseURL: API_URL,

@@ -41,7 +41,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Server runs on `http://localhost:5000` by default.
+Server runs on the `PORT` value configured in `server/.env`.
 
 Optional: seed demo account and sample data.
 
@@ -58,7 +58,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Client runs on `http://localhost:5173` by default.
+Client runs on the host/port configured by `vite` and reads its API base from `VITE_API_URL`.
 
 ## Environment Variables
 

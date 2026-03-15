@@ -10,9 +10,23 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const clientUrlEnv = process.env.CLIENT_URL ?? '';
+const allowedOrigins = clientUrlEnv
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Origin not allowed by CORS'));
+  },
+}));
 app.use(express.json());
 
 // Routes
@@ -20,7 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/tasks', taskRoutes);
 app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Error Middleware
@@ -30,7 +44,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 // Database Connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/devboard';
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  throw new Error('MONGO_URI is required');
+}
 
 mongoose.connect(MONGO_URI)
   .then(() => {
